@@ -88,7 +88,10 @@ class RFIDReaderTCP:
             print("Serial port not connected.")
             return
 
+        # 1. Create command frame
         frame = self.create_frame(command, data, address)
+        
+        # 2. Send frame over serial TCP/IP
         try:
             self.ser.write(frame)
             self._debug_print(f"Sent: {binascii.hexlify(frame).decode().upper()}")
@@ -106,19 +109,17 @@ class RFIDReaderTCP:
             return None
 
         try:
-            # Read the first byte (Len)
+            # 1. Read the first byte (Len)
             len_byte_data = self.ser.read(1)
             if not len_byte_data:
                 return None  # Timeout or no data
-
-            len_field_value = len_byte_data[0]
             
-            # Total expected bytes for the frame (including the initial Len byte)
+            # 2. Calculate total bytes for the frame (including initial Len byte)
+            len_field_value = len_byte_data[0]
             total_frame_length = 1 + len_field_value
 
-            # Read the remaining bytes of the frame
+            # 2. Read the remaining bytes of the frame (len_field_value bytes)
             # The 'Len' field value includes Adr, reCmd, Status, Data[], CRC16 (2 bytes)
-            # So, we need to read 'len_field_value' more bytes.
             remaining_frame_data = self.ser.read(len_field_value)
             if len(remaining_frame_data) != len_field_value:
                 print(f"Error: Incomplete frame received. Expected {len_field_value} bytes, got {len(remaining_frame_data)}.")
@@ -128,7 +129,7 @@ class RFIDReaderTCP:
             
             # Verify CRC16 using the reader's CRC algorithm (preset 0xFFFF, poly 0x8408).
             # Per device behaviour, calculating CRC over the full frame (including CRC bytes)
-            # should yield 0x0000 when CRC bytes are correct.
+            # should give 0x0000 when CRC bytes are correct.
             crc_check = self._calculate_crc16(full_frame)
             if crc_check == 0x0000:
                 self._debug_print(f"Received (Valid CRC): {binascii.hexlify(full_frame).decode().upper()}")
@@ -152,28 +153,53 @@ class RFIDReaderTCP:
         adr = frame[1]
         re_cmd = frame[2]
         status = frame[3]
-        # Data starts at index 4, ends before the last 2 bytes (CRC16)
-        payload = frame[4:-2]
+        data = frame[4:-2]  # Data starts at index 4, ends before the last 2 bytes (CRC16)
+        self._debug_print(f"Response Frame Parsed - Adr: {adr:02X}, reCmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()}")
 
-        # Accept both general success (0x00) and inventory success/status codes (e.g., 0x01)
-        if status in (0x00, 0x01):
-            if re_cmd == 0x21:  # Get Info Response
-                print(f"Reader Info (Address: {adr:02X}, Command: {re_cmd:02X}, Status: {status:02X}, Payload: {binascii.hexlify(payload).decode().upper()})")
-                # Further parse info from payload if needed
-            elif re_cmd == 0x01:  # Inventory Response (EPC C1G2)
-                if payload:
-                    epc_str = binascii.hexlify(payload).decode().upper()
-                    print(f"Inventory Response (Status {status:02X}) - Payload: {epc_str}")
-                else:
-                    print(f"Inventory Response (Status {status:02X}) - No tag data in this frame.")
-            elif re_cmd in (0x50, 0x51):  # 6B inventory responses
-                epc_str = binascii.hexlify(payload).decode().upper() if payload else ""
-                print(f"6B Inventory Response (Cmd {re_cmd:02X}, Status {status:02X}) - Payload: {epc_str}")
-            else:
-                print(f"Command Response (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Payload: {binascii.hexlify(payload).decode().upper()})")
-        else:
-            print(f"Command Response (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Payload: {binascii.hexlify(payload).decode().upper()}")
-
+                
+        if re_cmd == 0x00:
+            """
+            Command 0x21: Get Reader Information Response
+            """
+            print("Reader Information Response Received.")
+             
+        # Inventory success/status codes
+        if re_cmd == 0x01:
+            """
+            Inventory return command can have these possible statuses:
+            0x01 - Inventory successful
+            0x02 - Inventory timeout
+            0x03 - Further data available to be delivered
+            0x04 - Reader memory
+            0x26 - Inventory successful, now return statisitc data
+            0xF8 - Antenna error detected, the current antenna may be disconnected
+            """
+            print("Inventory Response Received.")
+        
+        match status:
+            case 0x00:
+                # Operation successful
+                print(f"Command Response (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+            case 0x01:
+                # Inventory successful
+                print(f"Command Response (Inventory Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                # Display data breakdown
+                print(f"  Tag Data: {binascii.hexlify(data).decode().upper()}")
+            case 0x02:
+                # Inventory timeout
+                print(f"Command Response (Inventory Timeout) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+            case 0x03:
+                # Further data available to be delivered
+                print(f"Command Response (Inventory More Data Available) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+            case 0x04:
+                # Reader memory full
+                print(f"Command Response (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+            case _:
+                # Unknown error status
+                print(f"[UNKOWN ERROR] Command Response (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                return
+        
+    
     def get_info(self, address=0x00):
         """Command 0x21: Get Reader Information"""
         self._debug_print("Requesting Reader Info...")
@@ -181,13 +207,77 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
 
-    def inventory(self, address=0x00):
-        """Command 0x01: Tag Inventory (EPC C1G2)"""
-        # For inventory, the data field might be empty or contain specific inventory parameters.
-        # Use 0x01 for Tag Inventory as per protocol.
-        self.send_command(0x01, data=[], address=address)
-        response_frame = self.receive_response()
-        self.handle_response_frame(response_frame)
+    def inventory(self, address=0x00, q_value=0x06, session=0x00, mask_mem=0x00, mask_adr=0x0000, mask_len=0x00
+                  , adr_tid=0x00, len_tid=0x00, target=None, ant=None, scan_time=None):
+        """
+        Command 0x01: Tag Inventory (EPC C1G2)
+        
+        Data[] Parameters:
+            q_value: Query value (Bit3-Bit0: 0-15, Default: 0b0110 ~ reads around ) | Flags (Bit7: Stats, Bit6: Strategy, Bit5: FastID, Bit4: Phase)
+                -> 0b00000110 = 0x06 (Default) -> Q=6 [Slots = 2^Q = 2^6], No Stats, Standard Strategy, No FastID, No Phase
+            session: Session (0x00-0x03, 0xFF=Smart)
+            mask_mem: Mask Memory Bank (default 0x00=EPC)
+            mask_adr: Mask Start Address (default 0x20)
+            mask_len: Mask Length in bits (default 0x00)
+            adr_tid: TID Start Address (default 0x00)
+            len_tid: TID Length in bits (default 0x00)
+            target: (optional) Target (0x00=A, 0x01=B)
+            ant: (optional) Antenna Selection (0x80=antenna1, 0x81=antenna2, 0x82=antenna3, 0x83=antenna4)
+            scan_time: (optional) Scan time in scan_time*100ms
+        """
+        # 1. Generate data array for inventory command
+        data = [
+            q_value,
+            session,
+            mask_mem,
+            (mask_adr >> 8) & 0xFF, mask_adr & 0xFF,
+            mask_len,
+            adr_tid,
+            len_tid
+        ]
+        
+        if target is not None:
+            data.append(target)
+        if ant is not None:
+            data.append(ant)
+        if scan_time is not None:
+            data.append(scan_time)
+
+        # 2. Send inventory command
+        self.send_command(0x01, data=data, address=address)
+        
+        # 3. Loop to receive all tag frames until a final status frame is received
+        while True:
+            response_frame = self.receive_response()
+            if not response_frame:
+                # response_frame = None received, exit loop
+                break
+            
+            self.handle_response_frame(response_frame)
+            
+            # Status 0x03 (More Data) or 0x04 (Buffer Full) means more frames are coming.
+            # Any other status (0x01 Success, 0x02 Timeout, etc.) means the operation is done.
+            status = response_frame[3]
+            if status == 0x01:
+                # Operation completed
+                print("Inventory operation completed.")
+            
+            if status == 0x26:
+                # Statistics frame received, operation completed
+                print("Inventory statistics frame received, operation completed.")
+                break
+    
+    # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
+    #     """
+    #     Australian UHF RFID Standard:
+    #       - EPC® Radio-Frequency Identity Generation-2 UHF RFID Standard
+    #     Australian RFID Range: 918-926MHz
+    #     Chinese Band 2: 920-925MHz (max_fre=0x00, min_fre=0x01)
+    #
+    #     Command 0x22: Set Working Frequency
+    #     Data[] Parameters:
+    #         max_freq: Maximum frequency channel (926MHz = 0b00010011 = 0x13)
+    #         min_freq: Minimum frequency channel (920MHz = 0b01000000 = 0x40)
 
 if __name__ == "__main__":
     # Configuration
@@ -210,14 +300,23 @@ if __name__ == "__main__":
         reader.get_info(address=READER_ADDRESS)
         time.sleep(0.5)
 
-        # 2. Loop for scanning tags
-        print("\nStarting Inventory Loop (Press Ctrl+C to stop)...")
+        # 2. Send inventory scanning command
+        print("\nPerforming Inventory Scan (Press Ctrl+C to stop)...")
         try:
-            while True:
-                reader.inventory(address=READER_ADDRESS)
-                # Small sleep to prevent flooding the network/CPU
-                time.sleep(0.1) 
+            reader.inventory(
+                    address=READER_ADDRESS,
+                    q_value=0x06,
+                    session=0x00,
+                    mask_mem=0x00,
+                    mask_adr=0x20,
+                    mask_len=0x00,
+                    adr_tid=0x00,
+                    len_tid=0x00,
+                    target=0x00,  # Target A
+                    ant=0x80,  # Antenna 1
+                    scan_time=10  # 1 second
+                )
         except KeyboardInterrupt:
-            print("\n User key pressed, stopping...")
+            print("\n User ctrl+c pressed, stopping...")
         finally:
             reader.close()

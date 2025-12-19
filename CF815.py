@@ -10,9 +10,10 @@ class RFIDReaderTCP:
         self.port = port
         self.baudrate = baudrate
         self.ser = None
-        self.debug = debug  # Added debug flag
+        self.debug = debug
 
     def _debug_print(self, message):
+        """ Only print debug messages if debug mode is enabled. """
         if self.debug:
             print(message)
 
@@ -20,7 +21,7 @@ class RFIDReaderTCP:
         """
         Calculate CRC16 as used by the reader (matching the C implementation):
         - preset: 0xFFFF
-        - polynomial: 0x8408 (reflected)
+        - polynomial: 0x8408 (reflected CRC-16-CCITT for LSB first)
         The algorithm XORs each input byte into the CRC and shifts right 8 times,
         XORing the polynomial when the LSB is set (same as the C sample).
         """
@@ -42,7 +43,7 @@ class RFIDReaderTCP:
             url = f"socket://{self.ip}:{self.port}"
             self._debug_print(f"Attempting to connect to {url}...")
             # The baudrate here is a formality for pyserial's socket://,
-            # as TCP/IP doesn't have a baudrate (it is stated to mirror a usb/rs232 serial connection).
+            # as TCP/IP doesn't have a baudrate, but we set it for consistency.
             self.ser = serial.serial_for_url(url, baudrate=self.baudrate, timeout=3)
             self._debug_print(f"Successfully connected to {url}")
             return True

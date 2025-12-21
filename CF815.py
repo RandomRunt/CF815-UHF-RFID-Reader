@@ -194,6 +194,9 @@ class RFIDReaderTCP:
             case 0x04:
                 # Reader memory full
                 print(f"Command Response (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+            case 0xFF:
+                # Parameter error
+                print(f"Command Response (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case _:
                 # Unknown error status
                 print(f"[UNKOWN ERROR] Command Response (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
@@ -308,14 +311,16 @@ if __name__ == "__main__":
                     q_value=0x06,
                     session=0x00,
                     mask_mem=0x00,
-                    mask_adr=0x20,
+                    mask_adr=0x00,
                     mask_len=0x00,
                     adr_tid=0x00,
                     len_tid=0x00,
                     target=0x00,  # Target A
                     ant=0x80,  # Antenna 1
-                    scan_time=10  # 1 second
+                    scan_time=0x14  # 20 * 100ms = 2 seconds
                 )
+            # Still need to fix this command -> getting Status: FF (Unknown Response)
+            # Print out raw output for debugging
         except KeyboardInterrupt:
             print("\n User ctrl+c pressed, stopping...")
         finally:

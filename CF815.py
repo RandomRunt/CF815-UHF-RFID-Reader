@@ -213,7 +213,7 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
 
-    def inventory(self, address=0x00, q_value=0x06, session=0x00, mask_mem=0x00, mask_adr=0x0000, mask_len=0x00
+    def inventory(self, address=0x00, q_value=0b00000110, session=0x00, mask_mem=0x00, mask_adr=0x0000, mask_len=0x00
                   , adr_tid=0x00, len_tid=0x00, target=None, ant=None, scan_time=None):
         """
         Command 0x01: Tag Inventory (EPC C1G2)
@@ -275,7 +275,7 @@ class RFIDReaderTCP:
                 0x02 - Inventory timeout
                 0x03 - Further data available to be delivered
                 0x04 - Reader memory
-                0x26 - Inventory successful, now return statisitc data
+                0x26 - Inventory successful, now return statistic data
                 0xF8 - Antenna error detected, the current antenna may be disconnected
             """
             
@@ -296,6 +296,24 @@ class RFIDReaderTCP:
         """
         print("\nRequesting Antenna Power...")
         self.send_command(0x94, address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
+    
+    def modify_antenna_power(self, address=0x00, power_level=0x14):
+        """
+        Command 0x2f: Modify Antenna Power
+        Data[] RF Power Params: 4 bytes, From left to right, there are antennas 1 to 4, each represented as follows the
+        RF power parameters.
+        bit0 ~ bit6: RF power setting, the valid value of this parameter is 0 ~ 30. For setting of 30, the
+        output power is approximately 1W.
+        UHF RFID Reader Series User Manual v2.20
+        64
+        bit7: configuration preservation status during power off.
+        0 - configuration preserved during reader power off;
+        1 - configuration is not preserved
+        """
+        print(f"\nSetting Antenna Power to {power_level + 10} dBm...")
+        self.send_command(0x2f, data=[power_level], address=address)
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
     
@@ -341,7 +359,7 @@ if __name__ == "__main__":
                 try:
                     reader.inventory(
                             address=READER_ADDRESS,
-                            q_value=0x06,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                            q_value=0b10000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
                             session=0x00,
                             mask_mem=0x01,
                             mask_adr=0x0000,
@@ -350,7 +368,7 @@ if __name__ == "__main__":
                             len_tid=0x00,
                             target=0x00,  # Target A
                             ant=0x80,  # Antenna 1
-                            scan_time=0x14  # 20 * 100ms = 2 seconds
+                            scan_time=0x64  # 100 * 100ms = 10 seconds
                         )
                     # Still need to fix this command -> getting Status: FF (Unknown Response)
                     # Print out raw output for debugging

@@ -157,11 +157,11 @@ class RFIDReaderTCP:
         self._debug_print(f"Response Frame Parsed - Adr: {adr:02X}, reCmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()}")
 
                 
-        if re_cmd == 0x00:
+        if re_cmd == 0x21:
             """
             Command 0x21: Get Reader Information Response
             """
-            print("Reader Information Response Received.")
+            print("[RESPONSE] Reader Information Response Received.")
              
         # Inventory success/status codes
         if re_cmd == 0x01:
@@ -174,38 +174,38 @@ class RFIDReaderTCP:
             0x26 - Inventory successful, now return statisitc data
             0xF8 - Antenna error detected, the current antenna may be disconnected
             """
-            print("Inventory Response Received.")
+            print("[RESPONSE] Inventory Response Received.")
         
         match status:
             case 0x00:
                 # Operation successful
-                print(f"Command Response (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case 0x01:
                 # Inventory successful
-                print(f"Command Response (Inventory Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Inventory Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
                 # Display data breakdown
                 print(f"  Tag Data: {binascii.hexlify(data).decode().upper()}")
             case 0x02:
                 # Inventory timeout
-                print(f"Command Response (Inventory Timeout) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Inventory Timeout) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case 0x03:
                 # Further data available to be delivered
-                print(f"Command Response (Inventory More Data Available) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Inventory More Data Available) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case 0x04:
                 # Reader memory full
-                print(f"Command Response (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case 0xFF:
                 # Parameter error
-                print(f"Command Response (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case _:
                 # Unknown error status
-                print(f"[UNKOWN ERROR] Command Response (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                print(f"[Response Details] UNKNOWN RESPONSE (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
                 return
         
     
     def get_info(self, address=0x00):
         """Command 0x21: Get Reader Information"""
-        self._debug_print("Requesting Reader Info...")
+        print("\nRequesting Reader Info...")
         self.send_command(0x21, address=address)
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
@@ -228,6 +228,9 @@ class RFIDReaderTCP:
             ant: (optional) Antenna Selection (0x80=antenna1, 0x81=antenna2, 0x82=antenna3, 0x83=antenna4)
             scan_time: (optional) Scan time in scan_time*100ms
         """
+        
+        print("\nPerforming Inventory Scan (Press Ctrl+C to stop)...")
+
         # 1. Generate data array for inventory command
         data = [
             q_value,
@@ -304,14 +307,13 @@ if __name__ == "__main__":
         time.sleep(0.5)
 
         # 2. Send inventory scanning command
-        print("\nPerforming Inventory Scan (Press Ctrl+C to stop)...")
         try:
             reader.inventory(
                     address=READER_ADDRESS,
-                    q_value=0x06,
+                    q_value=0x06,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
                     session=0x00,
-                    mask_mem=0x00,
-                    mask_adr=0x00,
+                    mask_mem=0x01,
+                    mask_adr=0x0000,
                     mask_len=0x00,
                     adr_tid=0x00,
                     len_tid=0x00,

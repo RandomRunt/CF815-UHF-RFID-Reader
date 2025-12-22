@@ -262,8 +262,11 @@ class RFIDReaderTCP:
             #     # response_frame = None received, exit loop
             #     break
 
-            if response_frame:
+            try:
+                response_frame = response_frame.decode()
                 print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
+            except (UnicodeDecodeError, AttributeError):
+                pass
 
             """
                 Possible Status Codes for Inventory Response:

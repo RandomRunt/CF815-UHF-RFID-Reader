@@ -258,20 +258,22 @@ class RFIDReaderTCP:
             if not response_frame:
                 # response_frame = None received, exit loop
                 break
+
+            print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
+
+            # self.handle_response_frame(response_frame)
             
-            self.handle_response_frame(response_frame)
+            # # Status 0x03 (More Data) or 0x04 (Buffer Full) means more frames are coming.
+            # # Any other status (0x01 Success, 0x02 Timeout, etc.) means the operation is done.
+            # status = response_frame[3]
+            # if status == 0x01:
+            #     # Operation completed
+            #     print("Inventory operation completed.")
             
-            # Status 0x03 (More Data) or 0x04 (Buffer Full) means more frames are coming.
-            # Any other status (0x01 Success, 0x02 Timeout, etc.) means the operation is done.
-            status = response_frame[3]
-            if status == 0x01:
-                # Operation completed
-                print("Inventory operation completed.")
-            
-            if status == 0x26:
-                # Statistics frame received, operation completed
-                print("Inventory statistics frame received, operation completed.")
-                break
+            # if status == 0x26:
+            #     # Statistics frame received, operation completed
+            #     print("Inventory statistics frame received, operation completed.")
+            #     break
     
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
@@ -292,38 +294,43 @@ if __name__ == "__main__":
     BAUDRATE = 57600
     READER_ADDRESS = 0x00  # Default reader address
 
+    # Initialize RFID Reader connection over TCP
     reader = RFIDReaderTCP(READER_IP, READER_PORT, BAUDRATE, debug=True)
     
-    # CRC self-test: construct a simple header ([Len][Adr][Cmd]), append LSB+MSB CRC,
-    # and verify that CRC over the full frame equals 0x0000 (device verification behavior).
-    test_hdr = bytearray([0x05, READER_ADDRESS, 0x21])  # Len, Adr, Cmd (no data)
-    crc = reader._calculate_crc16(test_hdr)
-    test_frame = test_hdr + bytearray([crc & 0xFF, (crc >> 8) & 0xFF])
-    print(f"CRC self-test: {'OK' if reader._calculate_crc16(test_frame) == 0x0000 else 'FAIL'} - {binascii.hexlify(test_frame).decode().upper()}")
+    # # CRC self-test: construct a simple header ([Len][Adr][Cmd]), append LSB+MSB CRC,
+    # # to verify that CRC over the full frame equals 0x0000.
+    # test_hdr = bytearray([0x05, READER_ADDRESS, 0x21])  # Len, Adr, Cmd (no data)
+    # crc = reader._calculate_crc16(test_hdr)
+    # test_frame = test_hdr + bytearray([crc & 0xFF, (crc >> 8) & 0xFF])
+    # print(f"CRC self-test: {'OK' if reader._calculate_crc16(test_frame) == 0x0000 else 'FAIL'} - {binascii.hexlify(test_frame).decode().upper()}")
     
+    # Prompt user to specify which operation to perform
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\nEnter choice (as a number): ")
     if reader.connect():
-        # 1. Get Reader Info to verify protocol
-        reader.get_info(address=READER_ADDRESS)
-        time.sleep(0.5)
-
-        # 2. Send inventory scanning command
-        try:
-            reader.inventory(
-                    address=READER_ADDRESS,
-                    q_value=0x06,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
-                    session=0x00,
-                    mask_mem=0x01,
-                    mask_adr=0x0000,
-                    mask_len=0x00,
-                    adr_tid=0x00,
-                    len_tid=0x00,
-                    target=0x00,  # Target A
-                    ant=0x80,  # Antenna 1
-                    scan_time=0x14  # 20 * 100ms = 2 seconds
-                )
-            # Still need to fix this command -> getting Status: FF (Unknown Response)
-            # Print out raw output for debugging
-        except KeyboardInterrupt:
-            print("\n User ctrl+c pressed, stopping...")
-        finally:
-            reader.close()
+        match usr_input:
+            case "1":
+                # Get Reader Info
+                reader.get_info(address=READER_ADDRESS)
+                time.sleep(0.5)
+            case "2":
+                # Perform Inventory Scan
+                try:
+                    reader.inventory(
+                            address=READER_ADDRESS,
+                            q_value=0x06,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                            session=0x00,
+                            mask_mem=0x01,
+                            mask_adr=0x0000,
+                            mask_len=0x00,
+                            adr_tid=0x00,
+                            len_tid=0x00,
+                            target=0x00,  # Target A
+                            ant=0x80,  # Antenna 1
+                            scan_time=0x14  # 20 * 100ms = 2 seconds
+                        )
+                    # Still need to fix this command -> getting Status: FF (Unknown Response)
+                    # Print out raw output for debugging
+                except KeyboardInterrupt:
+                    print("\n User ctrl+c pressed, stopping...")
+                finally:
+                    reader.close()

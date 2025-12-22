@@ -153,28 +153,30 @@ class RFIDReaderTCP:
         adr = frame[1]
         re_cmd = frame[2]
         status = frame[3]
-        data = frame[4:-2]  # Data starts at index 4, ends before the last 2 bytes (CRC16)
+        data = frame[4:-2]  # Data starts at index 4, ends before the last 2 bytes (LSB and MSB CRC16)
         self._debug_print(f"Response Frame Parsed - Adr: {adr:02X}, reCmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()}")
 
-                
-        if re_cmd == 0x21:
-            """
-            Command 0x21: Get Reader Information Response
-            """
-            print("[RESPONSE] Reader Information Response Received.")
-             
-        # Inventory success/status codes
-        if re_cmd == 0x01:
-            """
-            Inventory return command can have these possible statuses:
-            0x01 - Inventory successful
-            0x02 - Inventory timeout
-            0x03 - Further data available to be delivered
-            0x04 - Reader memory
-            0x26 - Inventory successful, now return statisitc data
-            0xF8 - Antenna error detected, the current antenna may be disconnected
-            """
-            print("[RESPONSE] Inventory Response Received.")
+        # Handle specific response commands
+        match re_cmd:
+            case 0x21:
+                """
+                Command 0x21: Get Reader Information Response
+                """
+                print("[RESPONSE] Reader Information Response Received.")
+            case 0x01:
+                """
+                Command 0x01: Tag Inventory return command can have these possible statuses:
+                """
+                print("[RESPONSE] Inventory Response Received.")
+            case 0x94:
+                """
+                Command 0x94: Read Antenna Power
+                """
+                print("[RESPONSE] Read Antenna Power Response Received.")
+            
+            case _:
+                print(f"[RESPONSE] Unknown reCmd: {re_cmd:02X} received.")
+                return None
         
         match status:
             case 0x00:
@@ -200,8 +202,9 @@ class RFIDReaderTCP:
             case _:
                 # Unknown error status
                 print(f"[Response Details] UNKNOWN RESPONSE (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-                return
+                return None
         
+        return status
     
     def get_info(self, address=0x00):
         """Command 0x21: Get Reader Information"""
@@ -255,25 +258,41 @@ class RFIDReaderTCP:
         # 3. Loop to receive all tag frames until a final status frame is received
         while True:
             response_frame = self.receive_response()
-            if not response_frame:
-                # response_frame = None received, exit loop
-                break
+            # if not response_frame:
+            #     # response_frame = None received, exit loop
+            #     break
 
             print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
 
-            # self.handle_response_frame(response_frame)
+            """
+                Possible Status Codes for Inventory Response:
+                0x01 - Inventory successful
+                0x02 - Inventory timeout
+                0x03 - Further data available to be delivered
+                0x04 - Reader memory
+                0x26 - Inventory successful, now return statisitc data
+                0xF8 - Antenna error detected, the current antenna may be disconnected
+            """
             
-            # # Status 0x03 (More Data) or 0x04 (Buffer Full) means more frames are coming.
-            # # Any other status (0x01 Success, 0x02 Timeout, etc.) means the operation is done.
-            # status = response_frame[3]
-            # if status == 0x01:
-            #     # Operation completed
-            #     print("Inventory operation completed.")
+            status = self.handle_response_frame(response_frame)
+            if status == 0x01:
+                # Operation completed
+                print("Inventory operation completed.")
+                break
             
             # if status == 0x26:
             #     # Statistics frame received, operation completed
             #     print("Inventory statistics frame received, operation completed.")
             #     break
+
+    def read_antenna_power(self, address=0x00):
+        """
+        Command 0x94: Read Antenna Power
+        """
+        print("\nRequesting Antenna Power...")
+        self.send_command(0x94, address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
     
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """

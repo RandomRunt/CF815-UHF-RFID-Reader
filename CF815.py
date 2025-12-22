@@ -278,7 +278,7 @@ class RFIDReaderTCP:
             if status == 0x01:
                 # Operation completed
                 print("Inventory operation completed.")
-                break
+                
             
             # if status == 0x26:
             #     # Statistics frame received, operation completed

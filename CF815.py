@@ -197,7 +197,7 @@ class RFIDReaderTCP:
                 # Reader memory full
                 print(f"[Response Details] (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case 0xFF:
-                # Parameter error
+                # Command Parameter error
                 print(f"[Response Details] (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
             case _:
                 # Unknown error status
@@ -267,7 +267,8 @@ class RFIDReaderTCP:
             # except (UnicodeDecodeError, AttributeError):
             #     pass
             
-            print(f"\n[INVENTORY RESPONSE FRAME] Received: {response_frame}")
+            if response_frame:
+                print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
 
             """
                 Possible Status Codes for Inventory Response:
@@ -359,16 +360,16 @@ if __name__ == "__main__":
                 try:
                     reader.inventory(
                             address=READER_ADDRESS,
-                            q_value=0b10000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                            q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
                             session=0x00,
                             mask_mem=0x01,
-                            mask_adr=0x0000,
+                            mask_adr=0x0020,
                             mask_len=0x00,
                             adr_tid=0x00,
                             len_tid=0x00,
                             target=0x00,  # Target A
                             ant=0x80,  # Antenna 1
-                            scan_time=0x64  # 100 * 100ms = 10 seconds
+                            scan_time=0x14  # 100 * 100ms = 10 seconds
                         )
                     # Still need to fix this command -> getting Status: FF (Unknown Response)
                     # Print out raw output for debugging

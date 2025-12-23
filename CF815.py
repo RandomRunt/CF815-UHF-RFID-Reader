@@ -615,7 +615,7 @@ if __name__ == "__main__":
                         # Automatically fetch the results after the scan finishes
                         print("\nAuto-retrieving results...")
                         reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
-                        reader.obtain_memory_buffer(address=READER_ADDRESS) # Command 0x72
+                        reader.obtain_inventory_buffer(address=READER_ADDRESS) # Command 0x72
                     
                     except ValueError:
                         print("Invalid number format.")

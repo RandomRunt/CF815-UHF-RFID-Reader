@@ -633,9 +633,9 @@ if __name__ == "__main__":
                         
                         reader.inventory_with_buffer(address=READER_ADDRESS, scan_time_sec=scan_duration)
                         
-                        # # Automatically fetch the results after the scan finishes
-                        print("\nRetrieving tag amount results...")
-                        reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
+                        # Automatically fetch the results after the scan finishes
+                        # print("\nRetrieving tag amount results...")
+                        # reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
                         # reader.obtain_inventory_buffer(address=READER_ADDRESS) # Command 0x72
                     
                     except ValueError:

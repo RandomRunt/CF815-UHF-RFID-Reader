@@ -166,7 +166,8 @@ class RFIDReaderTCP:
                 
                 if status == 0x00:
                     # Operation successful
-                    print(f"[Response Details] (Success) - Buffer Count: {int.from_bytes(data[0:2], byteorder='big')} tags, Tag Num: {int.from_bytes(data[2:4], byteorder='big')} tags")                    
+                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                    
                     # Parse Reader Information (Command 0x21)
                     print("\n" + "-"*60)
                     print("READER INFORMATION")
@@ -285,7 +286,7 @@ class RFIDReaderTCP:
                 """
                 print("[RESPONSE] Inventory with Memory Response Received.")
                 if status == 0x00:
-                    print(f"[Response Details] (Success) - Buffer Count: {int.from_bytes(data[0-1], byteorder='big')} tags, Tag Num: {int.from_bytes(data[2-3], byteorder='big')} tags")
+                    print(f"[Response Details] (Success) - Buffer Count: {int.from_bytes(data[0:2], byteorder='big')} tags, Tag Num: {int.from_bytes(data[2:4], byteorder='big')} tags")
             case 0x72:
                 """
                 Command 0x72: Tag Inventory with Memory Buffer Response

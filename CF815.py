@@ -285,6 +285,14 @@ class RFIDReaderTCP:
                 Command 0x18: Tag Inventory return command with memory buffer
                 """
                 print("[RESPONSE] Inventory with Memory Response Received.")
+            case 0x72:
+                """
+                Command 0x72: Tag Inventory with Memory Buffer Response
+                """
+                if (status == 0x01):
+                    print("[RESPONSE] Inventory with Memory Buffer Response Received.")
+                elif (status == 0x03):
+                    print("[RESPONSE] Inventory with Memory Buffer More Data Available Response Received.")
             case 0x94:
                 """
                 Command 0x94: Read Antenna Power
@@ -401,11 +409,21 @@ class RFIDReaderTCP:
             if status == 0x00:
                 # Operation completed
                 print("Inventory operation completed.")
+                return
                 
             # if status == 0x26:
             #     # Statistics frame received, operation completed
             #     print("Inventory statistics frame received, operation completed.")
             #     break
+    
+    def obtain_memory_buffer(self, address=0x00):
+        """
+        Command 0x72: Tag Inventory with Memory Buffer
+        """
+        print("\nRequesting Inventory with Memory Buffer...")
+        self.send_command(0x72, address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
     
     def read_antenna_power(self, address=0x00):
         """
@@ -451,7 +469,7 @@ class RFIDReaderTCP:
         self.send_command(0x25, data=[int(scan_time * 10)], address=address)
         response = self.receive_response()
         self.handle_response_frame(response)
-        
+    
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
     #     Australian UHF RFID Standard:
@@ -533,6 +551,10 @@ if __name__ == "__main__":
                         continue
                     # Modify Antenna Power
                     reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
+                case "5":
+                    # Obtain Memory Buffer Inventory
+                    reader.obtain_memory_buffer(address=READER_ADDRESS)
+                
                 case "exit":
                     print("Exiting...")
                     reader.close()

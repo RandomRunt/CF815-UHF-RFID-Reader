@@ -480,39 +480,44 @@ if __name__ == "__main__":
     # Prompt user to specify which operation to perform
     usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number): ")
     if reader.connect():
-        match usr_input:
-            case "1":
-                # Get Reader Info
-                reader.get_info(address=READER_ADDRESS)
-            case "2":
-                # Perform Inventory Scan
-                try:
-                    reader.inventory(
-                            address=READER_ADDRESS,
-                            q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
-                            session=0x00,
-                            mask_mem=0x01,
-                            mask_adr=0x0020,
-                            mask_len=0x00,
-                            adr_tid=0x00,
-                            len_tid=0x00,
-                            # target=0x00,  # Target A
-                            # ant=0x80,  # Antenna 1
-                            # scan_time=0x14  # 100 * 100ms = 10 seconds
-                        )
-                    # Still need to fix this command -> getting Status: FF (Unknown Response)
-                    # Print out raw output for debugging
-                except KeyboardInterrupt:
-                    print("\n User ctrl+c pressed, stopping...")
-                finally:
+        while usr_input != "exit":
+            match usr_input:
+                case "1":
+                    # Get Reader Info
+                    reader.get_info(address=READER_ADDRESS)
+                case "2":
+                    # Perform Inventory Scan
+                    try:
+                        reader.inventory(
+                                address=READER_ADDRESS,
+                                q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                                session=0x00,
+                                mask_mem=0x01,
+                                mask_adr=0x0020,
+                                mask_len=0x00,
+                                adr_tid=0x00,
+                                len_tid=0x00,
+                                # target=0x00,  # Target A
+                                # ant=0x80,  # Antenna 1
+                                # scan_time=0x14  # 100 * 100ms = 10 seconds
+                            )
+                        # Still need to fix this command -> getting Status: FF (Unknown Response)
+                        # Print out raw output for debugging
+                    except KeyboardInterrupt:
+                        print("\n User ctrl+c pressed, stopping...")
+                    finally:
+                        reader.close()
+                case "3":
+                    scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
+                    # Set reader inventory scan time persistently
+                    reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
+                case "4":
+                    antenna_power = int(input("Enter desired antenna power level (0-30 dBm): "))
+                    # Modify Antenna Power
+                    reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
+                case "exit":
+                    print("Exiting...")
                     reader.close()
-            case "3":
-                scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
-                # Set reader inventory scan time persistently
-                reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
-            case "4":
-                antenna_power = int(input("Enter desired antenna power level (0-30 dBm): "))
-                # Modify Antenna Power
-                reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
+            usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number) or 'exit' to quit: ")
             
         time.sleep(0.5)

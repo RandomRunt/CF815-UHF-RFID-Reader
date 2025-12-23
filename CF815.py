@@ -284,7 +284,8 @@ class RFIDReaderTCP:
                 """
                 Command 0x18: Tag Inventory return command with memory buffer
                 """
-                print("[RESPONSE] Inventory with Memory Response Received.")
+                if (status == 0x00):
+                    print("[RESPONSE] Inventory with Memory Response Received.")
             case 0x72:
                 """
                 Command 0x72: Tag Inventory with Memory Buffer Response
@@ -309,31 +310,31 @@ class RFIDReaderTCP:
                 print(f"[RESPONSE] Unknown reCmd: {re_cmd:02X} received.")
                 return None
         
-        match status:
-            case 0x00:
-                # Operation successful
-                print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-            case 0x01:
-                # Inventory successful
-                print(f"[Response Details] (Inventory Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-                # Display data breakdown
-                print(f"  Tag Data: {binascii.hexlify(data).decode().upper()}")
-            case 0x02:
-                # Inventory timeout
-                print(f"[Response Details] (Inventory Timeout) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-            case 0x03:
-                # Further data available to be delivered
-                print(f"[Response Details] (Inventory More Data Available) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-            case 0x04:
-                # Reader memory full
-                print(f"[Response Details] (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-            case 0xFF:
-                # Command Parameter error
-                print(f"[Response Details] (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-            case _:
-                # Unknown error status
-                print(f"[Response Details] UNKNOWN RESPONSE (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-                return None
+        # match status:
+        #     case 0x00:
+        #         # Operation successful
+        #         print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #     case 0x01:
+        #         # Inventory successful
+        #         print(f"[Response Details] (Inventory Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #         # Display data breakdown
+        #         print(f"  Tag Data: {binascii.hexlify(data).decode().upper()}")
+        #     case 0x02:
+        #         # Inventory timeout
+        #         print(f"[Response Details] (Inventory Timeout) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #     case 0x03:
+        #         # Further data available to be delivered
+        #         print(f"[Response Details] (Inventory More Data Available) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #     case 0x04:
+        #         # Reader memory full
+        #         print(f"[Response Details] (Inventory Memory Full) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #     case 0xFF:
+        #         # Command Parameter error
+        #         print(f"[Response Details] (Wrong Command Parameters Error) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #     case _:
+        #         # Unknown error status
+        #         print(f"[Response Details] UNKNOWN RESPONSE (Error Status {status:02X}) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+        #         return None
         
         return status
     
@@ -443,11 +444,11 @@ class RFIDReaderTCP:
         data = [
             0x06,       # QValue
             0xFF,       # Session (0xFF = Smart/Auto)
-            0x01,       # MaskMem (EPC)
-            0x00, 0x20, # MaskAdr
-            0x00,       # MaskLen
-            0x00,       # AdrTID
-            0x00,       # LenTID
+            # 0x01,       # MaskMem (EPC)
+            # 0x00, 0x20, # MaskAdr
+            # 0x00,       # MaskLen
+            # 0x00,       # AdrTID
+            # 0x00,       # LenTID
             0x00,       # Target A
             0x80,       # Antenna 1
             scan_time_hex # ScanTime (Mandatory for this logic)

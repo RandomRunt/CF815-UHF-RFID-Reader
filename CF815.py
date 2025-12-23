@@ -284,22 +284,30 @@ class RFIDReaderTCP:
                 """
                 Command 0x18: Tag Inventory return command with memory buffer
                 """
-                if (status == 0x00):
-                    print("[RESPONSE] Inventory with Memory Response Received.")
+                print("[RESPONSE] Inventory with Memory Response Received.")
+                if status == 0x00:
+                    print(f"[Response Details] (Success) - Buffer Count: {int.from_bytes(data[0-1], byteorder='big')} tags, Tag Num: {int.from_bytes(data[2-3], byteorder='big')} tags")
             case 0x72:
                 """
                 Command 0x72: Tag Inventory with Memory Buffer Response
                 """
-                if (status == 0x01):
+                if status == 0x01:
                     print("[RESPONSE] Inventory with Memory Buffer Response Received.")
-                elif (status == 0x03):
+                elif status == 0x03:
                     print("[RESPONSE] Inventory with Memory Buffer More Data Available Response Received.")
+            case 0x73:
+                """
+                Command 0x73: Clear Memory Buffer Response
+                """
+                if status == 0x00:
+                    print("[RESPONSE] Clear Memory Buffer Response Received.")
             case 0x74:
                 """
                 Command 0x74: Obtain Memory Buffer Tag Amount Response
                 """
-                print("[RESPONSE] Obtain Memory Buffer Tag Amount Response Received.")
-                print(f"  Tag Amount: {int.from_bytes(data, byteorder='big')} tags")
+                if status == 0x00:
+                    print("[RESPONSE] Obtain Memory Buffer Tag Amount Response Received.")
+                    print(f"  Tag Amount: {int.from_bytes(data, byteorder='big')} tags")
             case 0x94:
                 """
                 Command 0x94: Read Antenna Power
@@ -610,13 +618,12 @@ if __name__ == "__main__":
                             print("Invalid time.")
                             continue
                         
-                        # CALL THE NEW 0x18 FUNCTION
                         reader.inventory_with_buffer(address=READER_ADDRESS, scan_time_sec=scan_duration)
                         
-                        # Automatically fetch the results after the scan finishes
-                        print("\nAuto-retrieving results...")
-                        reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
-                        reader.obtain_inventory_buffer(address=READER_ADDRESS) # Command 0x72
+                        # # Automatically fetch the results after the scan finishes
+                        # print("\nAuto-retrieving results...")
+                        # reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
+                        # reader.obtain_inventory_buffer(address=READER_ADDRESS) # Command 0x72
                     
                     except ValueError:
                         print("Invalid number format.")

@@ -444,7 +444,7 @@ class RFIDReaderTCP:
         Command 0x25: Modify reader inventory time (persists until changed)
         """
         print(f"\nSetting persistent scan time to {scan_time}s...")
-        self.send_command(0x25, data=[scan_time * 10], address=address)
+        self.send_command(0x25, data=[int(scan_time * 10)], address=address)
         response = self.receive_response()
         self.handle_response_frame(response)
         
@@ -507,7 +507,7 @@ if __name__ == "__main__":
                 finally:
                     reader.close()
             case "3":
-                scn_time = int(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
+                scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
                 # Set reader inventory scan time persistently
                 reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
             case "4":

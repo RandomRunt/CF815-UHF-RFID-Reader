@@ -163,6 +163,80 @@ class RFIDReaderTCP:
                 Command 0x21: Get Reader Information Response
                 """
                 print("[RESPONSE] Reader Information Response Received.")
+                
+                if status == 0x00:
+                    # Operation successful
+                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                    
+                    # Parse Reader Information (Command 0x21)
+                    print("\n" + "="*60)
+                    print("READER INFORMATION DETAILS")
+                    print("="*60)
+                    
+                    version_major = data[0]
+                    version_minor = data[1]
+                    reader_type = data[2]
+                    protocols = data[3]
+                    dmaxfre = data[4]
+                    dminfre = data[5]
+                    power = data[6]
+                    scntm = data[7]
+                    ant_config = data[8]
+                    # reserved = data[9], data[10]
+                    check_ant = data[10] if len(data) > 10 else 0
+                    
+                    print(f"  Version: {version_major}.{version_minor}")
+                    print(f"  Reader Type: 0x{reader_type:02X}")
+                    
+                    # Parse protocol support
+                    protocols_str = []
+                    if protocols & 0b00000001:
+                        protocols_str.append("ISO18000-6B")
+                    if protocols & 0b00000010:
+                        protocols_str.append("ISO18000-6C (EPC Gen2)")
+                    print(f"  Supported Protocols: {', '.join(protocols_str)} (0b{protocols:08b})")
+                    
+                    # Parse frequency band
+                    freq_band_bits = ((dmaxfre >> 6) << 2) | (dminfre >> 6)
+                    freq_bands = {
+                        0b0001: "Chinese band2 (920-925 MHz)",
+                        0b0010: "US band (902-928 MHz)",
+                        0b0011: "Korean band (917-921 MHz)",
+                        0b0100: "EU band (865-868 MHz)",
+                        0b0110: "Ukraine band (868-869 MHz)",
+                        0b0111: "Peru band (916-928 MHz)",
+                        0b1000: "Chinese band1 (840-845 MHz)",
+                        0b1001: "EU3 band (865-868 MHz)",
+                        0b1010: "Taiwan band (922-928 MHz)",
+                        0b1100: "US band3 (902-928 MHz)"
+                    }
+                    freq_band = freq_bands.get(freq_band_bits, "Unknown")
+                    max_freq_point = dmaxfre & 0b00111111
+                    min_freq_point = dminfre & 0b00111111
+                    print(f"  Frequency Band: {freq_band}")
+                    print(f"    Max Frequency Point: {max_freq_point} (0x{dmaxfre:02X})")
+                    print(f"    Min Frequency Point: {min_freq_point} (0x{dminfre:02X})")
+                    
+                    # Parse RF power
+                    actual_power_dbm = power + 10  # Approximate dBm
+                    print(f"  RF Power: {power} (~{actual_power_dbm} dBm, max=30 for ~33dBm)")
+                    
+                    # Parse scan time
+                    scan_time_seconds = scntm * 0.1
+                    print(f"  Inventory Scan Time: {scntm} (0x{scntm:02X}) = {scan_time_seconds}s")
+
+                    # Parse antenna configuration
+                    enabled_antennas = []
+                    for i in range(8):
+                        if ant_config & (1 << i):
+                            enabled_antennas.append(i + 1)
+                    print(f"  Antenna Config: 0b{ant_config:08b}")
+                    print(f"    Enabled Antennas: {', '.join(map(str, enabled_antennas)) if enabled_antennas else 'None'}")
+                    
+                    # Parse antenna check
+                    print(f"  Antenna Check: {'Enabled' if check_ant == 1 else 'Disabled'}")
+                    print("="*60 + "\n")
+                    
             case 0x01:
                 """
                 Command 0x01: Tag Inventory return command can have these possible statuses:

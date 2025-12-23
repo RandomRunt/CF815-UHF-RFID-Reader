@@ -293,6 +293,11 @@ class RFIDReaderTCP:
                     print("[RESPONSE] Inventory with Memory Buffer Response Received.")
                 elif (status == 0x03):
                     print("[RESPONSE] Inventory with Memory Buffer More Data Available Response Received.")
+            case 0x74:
+                """
+                Command 0x74: Obtain Memory Buffer Tag Amount Response
+                """
+                print("[RESPONSE] Obtain Memory Buffer Tag Amount Response Received.")
             case 0x94:
                 """
                 Command 0x94: Read Antenna Power
@@ -425,6 +430,15 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
     
+    def obtain_tag_amount(self, address=0x00):
+        """
+        Command 0x74: Obtain Memory Buffer Tag Amount
+        """
+        print("\nRequesting Tag Amount...")
+        self.send_command(0x74, address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
+    
     def read_antenna_power(self, address=0x00):
         """
         Command 0x94: Read Antenna Power
@@ -535,8 +549,6 @@ if __name__ == "__main__":
                         # Print out raw output for debugging
                     except KeyboardInterrupt:
                         print("\n User ctrl+c pressed, stopping...")
-                    finally:
-                        reader.close()
                 case "3":
                     scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
                     if scn_time < 0.3 or scn_time > 25.5:
@@ -552,17 +564,21 @@ if __name__ == "__main__":
                     # Modify Antenna Power
                     reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
                 case "5":
-                    # Obtain Memory Buffer Inventory
+                    # Obtain EPC Tags in Memory Buffer Inventory
                     reader.obtain_memory_buffer(address=READER_ADDRESS)
+                case "6":
+                    # Obtain Tag Amount in Memory Buffer
+                    reader.obtain_tag_amount(address=READER_ADDRESS)
+                
                 
                 case "exit":
                     print("Exiting...")
                     reader.close()
 
+            time.sleep(0.5)
             print()
             print("="*60)
             usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number) or 'exit' to quit: ")
             print("="*60)
             
-            
-        time.sleep(0.5)
+        reader.close()   

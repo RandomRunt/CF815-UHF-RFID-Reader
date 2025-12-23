@@ -218,7 +218,7 @@ class RFIDReaderTCP:
                     print(f"    Min Frequency Point: {min_freq_point} (0x{dminfre:02X})")
                     
                     # Parse RF power
-                    print(f"  RF Power: {power} dBm (0-33dBm)")
+                    print(f"  RF Power: {power} dBm (0-33 dBm)")
                     
                     # Parse scan time
                     scan_time_seconds = scntm * 0.1
@@ -235,6 +235,36 @@ class RFIDReaderTCP:
                     # Parse antenna check
                     print(f"  Antenna Check: {'Enabled' if check_ant == 1 else 'Disabled'}")
                     print("="*60 + "\n")
+
+            case 0x77:
+                """
+                Command 0x77: Get Reader Working Mode Response
+                """
+                print("[RESPONSE] Reader Working Mode Response Received.")
+                if status == 0x00:
+                    # Operation successful
+                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+                    
+                    # Parse Reader Information (Command 0x21)
+                    print("\n" + "="*60)
+                    print("READER WORKING MODE DETAILS")
+                    print("="*60)
+                    
+                    work_mode = data[0]
+                    tag_protocol = data[1]
+                    read_pause_time = data[2]
+                    filter_time = data[3]
+                    q_value = data[4]
+                    session = data[5]
+                
+            case 0x25:
+                """
+                Command 0x25: Modify reader inventory time Response
+                """
+                print("[RESPONSE] Modify Inventory Time Response Received.")
+                if status == 0x00:
+                    # Operation successful
+                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
                     
             case 0x01:
                 """
@@ -391,6 +421,24 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
     
+    def get_reader_working_mode(self, address=0x00):
+        """
+        Command 0x77: Get Reader Working Mode
+        """
+        print("\nRequesting Reader Working Mode...")
+        self.send_command(0x77, address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
+    
+    def set_scan_time_persistent(self, scan_time=0x64, address=0x00):
+        """
+        Command 0x25: Modify reader inventory time (persists until changed)
+        """
+        print(f"\nSetting persistent scan time to {scan_time}s...")
+        self.send_command(0x25, data=[scan_time * 10], address=address)
+        response = self.receive_response()
+        self.handle_response_frame(response)
+        
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
     #     Australian UHF RFID Standard:

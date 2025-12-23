@@ -166,8 +166,7 @@ class RFIDReaderTCP:
                 
                 if status == 0x00:
                     # Operation successful
-                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-                    
+                    print(f"[Response Details] (Success) - Buffer Count: {int.from_bytes(data[0:2], byteorder='big')} tags, Tag Num: {int.from_bytes(data[2:4], byteorder='big')} tags")                    
                     # Parse Reader Information (Command 0x21)
                     print("\n" + "-"*60)
                     print("READER INFORMATION")
@@ -464,6 +463,8 @@ class RFIDReaderTCP:
 
         # 3. Send Command 0x18
         self.send_command(0x18, data=data, address=address)
+        
+        time.sleep(scan_time_sec)
 
         # 4. Wait for the completion response
         # The reader will block here for the duration of the scan

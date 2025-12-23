@@ -465,7 +465,18 @@ class RFIDReaderTCP:
         # 3. Send Command 0x18
         self.send_command(0x18, data=data, address=address)
         
-        time.sleep(scan_time_sec)
+        # time.sleep(scan_time_sec)
+        
+        import sys
+        steps = int(scan_time_sec * 10) # 10 updates per second
+        
+        print(f"Scanning: [", end="", flush=True)
+        for i in range(steps):
+            time.sleep(0.1)
+            # Update bar every 10% or so to avoid spamming, or just print dots/chars
+            if i % (steps // 20 + 1) == 0: 
+                print("#", end="", flush=True)
+        print("] Done!")
 
         # 4. Wait for the completion response
         # The reader will block here for the duration of the scan

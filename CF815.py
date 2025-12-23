@@ -384,7 +384,7 @@ class RFIDReaderTCP:
             data.append(scan_time)
 
         # 2. Send inventory command
-        self.send_command(0x18, data=data, address=address)
+        self.send_command(0x01, data=data, address=address)
         
         # 3. Loop to receive all tag frames until a final status frame is received
         while True:
@@ -422,7 +422,58 @@ class RFIDReaderTCP:
             #     print("Inventory statistics frame received, operation completed.")
             #     break
     
-    def obtain_memory_buffer(self, address=0x00):
+    def inventory_with_buffer(self, address=0x00, scan_time_sec=5.0):
+        """
+        Command 0x18: Inventory with Memory Buffer
+        This forces the reader to scan for the specific time and store results internally.
+        """
+        # 1. Clear the buffer first so we don't get old data
+        self.clear_memory_buffer(address)
+
+        print(f"\nStarting Buffered Inventory for {scan_time_sec} seconds (Command 0x18)...")
+        print("The reader will remain silent until the time is up.")
+
+        # Calculate time in 100ms units (e.g., 5.0s * 10 = 50 = 0x32)
+        scan_time_hex = int(scan_time_sec * 10)
+        if scan_time_hex > 255: scan_time_hex = 255
+
+        # 2. Construct Data Packet for Command 0x18
+        # Format: Q(1), Session(1), MaskMem(1), MaskAdr(2), MaskLen(1), 
+        #         AdrTID(1), LenTID(1), Target(1), Ant(1), ScanTime(1)
+        data = [
+            0x06,       # QValue
+            0xFF,       # Session (0xFF = Smart/Auto)
+            0x01,       # MaskMem (EPC)
+            0x00, 0x20, # MaskAdr
+            0x00,       # MaskLen
+            0x00,       # AdrTID
+            0x00,       # LenTID
+            0x00,       # Target A
+            0x80,       # Antenna 1
+            scan_time_hex # ScanTime (Mandatory for this logic)
+        ]
+
+        # 3. Send Command 0x18
+        self.send_command(0x18, data=data, address=address)
+
+        # 4. Wait for the completion response
+        # The reader will block here for the duration of the scan
+        # Set a temporary long timeout for the serial connection to ensure we don't error out python side
+        old_timeout = self.ser.timeout
+        self.ser.timeout = scan_time_sec + 2 # Give it a buffer
+        
+        try:
+            response = self.receive_response()
+            if response:
+                print("\n[BUFFERED SCAN COMPLETE]")
+                self.handle_response_frame(response)
+            else:
+                print("\n[WARNING] No response received (Timeout).")
+        finally:
+            # Restore timeout
+            self.ser.timeout = old_timeout
+    
+    def obtain_inventory_buffer(self, address=0x00):
         """
         Command 0x72: Tag Inventory with Memory Buffer
         """
@@ -430,6 +481,16 @@ class RFIDReaderTCP:
         self.send_command(0x72, address=address)
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
+    
+    def clear_memory_buffer(self, address=0x00):
+        """
+        Command 0x73: Clear memory buffer
+        """
+        print("\nClearing Memory Buffer...")
+        self.send_command(0x73, address=address)
+        # We expect a simple success response
+        response = self.receive_response()
+        self.handle_response_frame(response)
     
     def obtain_tag_amount(self, address=0x00):
         """
@@ -527,27 +588,37 @@ if __name__ == "__main__":
                     # Get Reader Info
                     reader.get_info(address=READER_ADDRESS)
                 case "2":
-                    scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
-                    if scn_time < 0.3 or scn_time > 25.5:
-                        print("Error: Scan time must be between 0.3 and 25.5 seconds.")
-                        continue
                     # Perform Inventory Scan
                     try:
-                        reader.inventory(
-                                address=READER_ADDRESS,
-                                q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
-                                session=0xFF,  # Smart session
-                                mask_mem=0x01,
-                                mask_adr=0x0020,
-                                mask_len=0x00,
-                                adr_tid=0x00,
-                                len_tid=0x00,
-                                target=0x00,  # Target A
-                                ant=0x80,  # Antenna 1
-                                scan_time= int(scn_time * 10)   # scan time in 100ms units
-                            )
-                        # Still need to fix this command -> getting Status: FF (Unknown Response)
-                        # Print out raw output for debugging
+                        # reader.inventory(
+                        #         address=READER_ADDRESS,
+                        #         q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                        #         session=0xFF,  # Smart session
+                        #         mask_mem=0x01,
+                        #         mask_adr=0x0020,
+                        #         mask_len=0x00,
+                        #         adr_tid=0x00,
+                        #         len_tid=0x00,
+                        #         target=0x00,  # Target A
+                        #         ant=0x80,  # Antenna 1
+                        #         scan_time= int(scn_time * 10)   # scan time in 100ms units
+                        #     )
+                        
+                        scan_duration = float(input("Enter scan time in seconds (0.3 - 25.5): "))
+                        if scan_duration < 0.3 or scan_duration > 25.5:
+                            print("Invalid time.")
+                            continue
+                        
+                        # CALL THE NEW 0x18 FUNCTION
+                        reader.inventory_with_buffer(address=READER_ADDRESS, scan_time_sec=scan_duration)
+                        
+                        # Automatically fetch the results after the scan finishes
+                        print("\nAuto-retrieving results...")
+                        reader.obtain_tag_amount(address=READER_ADDRESS) # Command 0x74
+                        reader.obtain_memory_buffer(address=READER_ADDRESS) # Command 0x72
+                    
+                    except ValueError:
+                        print("Invalid number format.")
                     except KeyboardInterrupt:
                         print("\n User ctrl+c pressed, stopping...")
                 case "3":
@@ -566,7 +637,7 @@ if __name__ == "__main__":
                     reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
                 case "5":
                     # Obtain EPC Tags in Memory Buffer Inventory
-                    reader.obtain_memory_buffer(address=READER_ADDRESS)
+                    reader.obtain_inventory_buffer(address=READER_ADDRESS)
                 case "6":
                     # Obtain Tag Amount in Memory Buffer
                     reader.obtain_tag_amount(address=READER_ADDRESS)

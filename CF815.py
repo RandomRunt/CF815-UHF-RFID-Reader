@@ -367,9 +367,9 @@ if __name__ == "__main__":
                             mask_len=0x00,
                             adr_tid=0x00,
                             len_tid=0x00,
-                            target=0x00,  # Target A
-                            ant=0x80,  # Antenna 1
-                            scan_time=0x14  # 100 * 100ms = 10 seconds
+                            # target=0x00,  # Target A
+                            # ant=0x80,  # Antenna 1
+                            # scan_time=0x14  # 100 * 100ms = 10 seconds
                         )
                     # Still need to fix this command -> getting Status: FF (Unknown Response)
                     # Print out raw output for debugging

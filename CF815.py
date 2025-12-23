@@ -478,7 +478,7 @@ if __name__ == "__main__":
     # print(f"CRC self-test: {'OK' if reader._calculate_crc16(test_frame) == 0x0000 else 'FAIL'} - {binascii.hexlify(test_frame).decode().upper()}")
     
     # Prompt user to specify which operation to perform
-    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n 3 - Set Inventory Scan Time\n 4 - Modify Antenna Power\nEnter choice (as a number): ")
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number): ")
     if reader.connect():
         match usr_input:
             case "1":
@@ -507,11 +507,12 @@ if __name__ == "__main__":
                 finally:
                     reader.close()
             case "3":
+                scn_time = int(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
                 # Set reader inventory scan time persistently
-                reader.set_scan_time_persistent(scan_time=10, address=READER_ADDRESS)
+                reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
             case "4":
+                antenna_power = int(input("Enter desired antenna power level (0-30 dBm): "))
                 # Modify Antenna Power
-                reader.modify_antenna_power(address=READER_ADDRESS, power_level=20)
-            
+                reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
             
         time.sleep(0.5)

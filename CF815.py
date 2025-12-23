@@ -259,13 +259,22 @@ class RFIDReaderTCP:
                 
             case 0x25:
                 """
-                Command 0x25: Modify reader inventory time Response
+                Command 0x25: Modify reader inventory time
                 """
-                print("[RESPONSE] Modify Inventory Time Response Received.")
+                print("[RESPONSE] Modify Inventory Time Received.")
                 if status == 0x00:
                     # Operation successful
                     print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
-                    
+
+            case 0x2F:
+                """
+                Command 0x2F: Modify Antenna Power
+                """
+                print("[RESPONSE] Modify Antenna Power Received.")
+                if status == 0x00:
+                    # Operation successful
+                    print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
+
             case 0x01:
                 """
                 Command 0x01: Tag Inventory return command can have these possible statuses:
@@ -416,7 +425,7 @@ class RFIDReaderTCP:
         0 - configuration preserved during reader power off;
         1 - configuration is not preserved
         """
-        print(f"\nSetting Antenna Power to {power_level + 10} dBm...")
+        print(f"\nSetting Antenna Power to {power_level} dBm...")
         self.send_command(0x2f, data=[power_level], address=address)
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
@@ -475,7 +484,6 @@ if __name__ == "__main__":
             case "1":
                 # Get Reader Info
                 reader.get_info(address=READER_ADDRESS)
-                time.sleep(0.5)
             case "2":
                 # Perform Inventory Scan
                 try:
@@ -498,3 +506,12 @@ if __name__ == "__main__":
                     print("\n User ctrl+c pressed, stopping...")
                 finally:
                     reader.close()
+            case "3":
+                # Set reader inventory scan time persistently
+                reader.set_scan_time_persistent(scan_time=10, address=READER_ADDRESS)
+            case "4":
+                # Modify Antenna Power
+                reader.modify_antenna_power(address=READER_ADDRESS, power_level=20)
+            
+            
+        time.sleep(0.5)

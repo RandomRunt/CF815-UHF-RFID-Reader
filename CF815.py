@@ -298,6 +298,7 @@ class RFIDReaderTCP:
                 Command 0x74: Obtain Memory Buffer Tag Amount Response
                 """
                 print("[RESPONSE] Obtain Memory Buffer Tag Amount Response Received.")
+                print(f"  Tag Amount: {int.from_bytes(data, byteorder='big')} tags")
             case 0x94:
                 """
                 Command 0x94: Read Antenna Power

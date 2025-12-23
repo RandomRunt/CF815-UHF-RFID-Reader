@@ -478,7 +478,7 @@ if __name__ == "__main__":
     # print(f"CRC self-test: {'OK' if reader._calculate_crc16(test_frame) == 0x0000 else 'FAIL'} - {binascii.hexlify(test_frame).decode().upper()}")
     
     # Prompt user to specify which operation to perform
-    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\nEnter choice (as a number): ")
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n 3 - Set Inventory Scan Time\n 4 - Modify Antenna Power\nEnter choice (as a number): ")
     if reader.connect():
         match usr_input:
             case "1":

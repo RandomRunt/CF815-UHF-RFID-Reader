@@ -476,24 +476,30 @@ class RFIDReaderTCP:
             # Update bar every 10% or so to avoid spamming, or just print dots/chars
             if i % (steps // 20 + 1) == 0: 
                 print("#", end="", flush=True)
-        print("] Done!")
-
-        # 4. Wait for the completion response
-        # The reader will block here for the duration of the scan
-        # Set a temporary long timeout for the serial connection to ensure we don't error out python side
-        old_timeout = self.ser.timeout
-        self.ser.timeout = scan_time_sec + 2 # Give it a buffer
-        
-        try:
             response = self.receive_response()
             if response:
                 print("\n[BUFFERED SCAN COMPLETE]")
                 self.handle_response_frame(response)
             else:
                 print("\n[WARNING] No response received (Timeout).")
-        finally:
-            # Restore timeout
-            self.ser.timeout = old_timeout
+        print("] Done!")
+
+        # # 4. Wait for the completion response
+        # # The reader will block here for the duration of the scan
+        # # Set a temporary long timeout for the serial connection to ensure we don't error out python side
+        # old_timeout = self.ser.timeout
+        # self.ser.timeout = scan_time_sec + 2 # Give it a buffer
+        
+        # try:
+        #     response = self.receive_response()
+        #     if response:
+        #         print("\n[BUFFERED SCAN COMPLETE]")
+        #         self.handle_response_frame(response)
+        #     else:
+        #         print("\n[WARNING] No response received (Timeout).")
+        # finally:
+        #     # Restore timeout
+        #     self.ser.timeout = old_timeout
     
     def obtain_inventory_buffer(self, address=0x00):
         """

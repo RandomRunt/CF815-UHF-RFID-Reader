@@ -183,7 +183,7 @@ class RFIDReaderTCP:
                     scntm = data[7]
                     ant_config = data[8]
                     # reserved = data[9], data[10]
-                    check_ant = data[10] if len(data) > 10 else 0
+                    check_ant = data[-1]
                     
                     print(f"  Version: {version_major}.{version_minor}")
                     print(f"  Reader Type: 0x{reader_type:02X}")
@@ -218,8 +218,7 @@ class RFIDReaderTCP:
                     print(f"    Min Frequency Point: {min_freq_point} (0x{dminfre:02X})")
                     
                     # Parse RF power
-                    actual_power_dbm = power + 10  # Approximate dBm
-                    print(f"  RF Power: {power} (~{actual_power_dbm} dBm, max=30 for ~33dBm)")
+                    print(f"  RF Power: {power} dBm (0-33dBm)")
                     
                     # Parse scan time
                     scan_time_seconds = scntm * 0.1

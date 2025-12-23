@@ -169,9 +169,9 @@ class RFIDReaderTCP:
                     print(f"[Response Details] (Success) - Adr: {adr:02X}, Cmd: {re_cmd:02X}, Status: {status:02X}, Data: {binascii.hexlify(data).decode().upper()})")
                     
                     # Parse Reader Information (Command 0x21)
-                    print("\n" + "="*60)
+                    print("\n" + "-"*60)
                     print("READER INFORMATION DETAILS")
-                    print("="*60)
+                    print("-"*60)
                     
                     version_major = data[0]
                     version_minor = data[1]
@@ -234,7 +234,7 @@ class RFIDReaderTCP:
                     
                     # Parse antenna check
                     print(f"  Antenna Check: {'Enabled' if check_ant == 1 else 'Disabled'}")
-                    print("="*60 + "\n")
+                    print("-"*60 + "\n")
 
             case 0x77:
                 """
@@ -478,7 +478,11 @@ if __name__ == "__main__":
     # print(f"CRC self-test: {'OK' if reader._calculate_crc16(test_frame) == 0x0000 else 'FAIL'} - {binascii.hexlify(test_frame).decode().upper()}")
     
     # Prompt user to specify which operation to perform
-    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number): ")
+    print("="*60)
+    print("CHAFON CF815 RFID Reader TCP Interface")
+    print("="*60)
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number) or 'exit' to quit: ")
+    print("="*60)
     if reader.connect():
         while usr_input != "exit":
             match usr_input:
@@ -509,15 +513,24 @@ if __name__ == "__main__":
                         reader.close()
                 case "3":
                     scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
+                    if scn_time < 0.3 or scn_time > 25.5:
+                        print("Error: Scan time must be between 0.3 and 25.5 seconds.")
+                        continue
                     # Set reader inventory scan time persistently
                     reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
                 case "4":
                     antenna_power = int(input("Enter desired antenna power level (0-30 dBm): "))
+                    if antenna_power < 0 or antenna_power > 30:
+                        print("Error: Antenna power level must be between 0 and 30 dBm.")
+                        continue
                     # Modify Antenna Power
                     reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
                 case "exit":
                     print("Exiting...")
                     reader.close()
+
+            print()
+            print("="*60)
             usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number) or 'exit' to quit: ")
-            
+
         time.sleep(0.5)

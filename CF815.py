@@ -277,9 +277,14 @@ class RFIDReaderTCP:
 
             case 0x01:
                 """
-                Command 0x01: Tag Inventory return command can have these possible statuses:
+                Command 0x01: Tag Inventory return command
                 """
                 print("[RESPONSE] Inventory Response Received.")
+            case 0x18:
+                """
+                Command 0x18: Tag Inventory return command with memory buffer
+                """
+                print("[RESPONSE] Inventory with Memory Response Received.")
             case 0x94:
                 """
                 Command 0x94: Read Antenna Power
@@ -365,7 +370,7 @@ class RFIDReaderTCP:
             data.append(scan_time)
 
         # 2. Send inventory command
-        self.send_command(0x01, data=data, address=address)
+        self.send_command(0x18, data=data, address=address)
         
         # 3. Loop to receive all tag frames until a final status frame is received
         while True:
@@ -393,16 +398,15 @@ class RFIDReaderTCP:
             """
             
             status = self.handle_response_frame(response_frame)
-            if status == 0x01:
+            if status == 0x00:
                 # Operation completed
                 print("Inventory operation completed.")
                 
-            
             # if status == 0x26:
             #     # Statistics frame received, operation completed
             #     print("Inventory statistics frame received, operation completed.")
             #     break
-
+    
     def read_antenna_power(self, address=0x00):
         """
         Command 0x94: Read Antenna Power
@@ -536,5 +540,7 @@ if __name__ == "__main__":
             print()
             print("="*60)
             usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\nEnter choice (as a number) or 'exit' to quit: ")
-
+            print("="*60)
+            
+            
         time.sleep(0.5)

@@ -452,7 +452,7 @@ class RFIDReaderTCP:
         data = [
             0x06,       # QValue
             0xFF,       # Session (0xFF = Smart/Auto)
-            0x01,       # MaskMem (EPC)
+            0x00,       # MaskMem (EPC)
             0x00, 0x00, # MaskAdr
             0x00,       # MaskLen
             0x00,       # AdrTID

@@ -353,8 +353,8 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
 
-    def inventory(self, address=0x00, q_value=0b00000110, session=0x00, mask_mem=0x00, mask_adr=0x0000, mask_len=0x00
-                  , adr_tid=0x00, len_tid=0x00, target=None, ant=None, scan_time=None):
+    def inventory(self, address=0x00, q_value=0b00000110, session=0x00, mask_mem=0x01, mask_adr=0x0000, mask_len=0x00
+                  , adr_tid=0x00, len_tid=0x00, target=None, ant=None, scan_time=None, scan_time_sec=5.0):
         """
         Command 0x01: Tag Inventory (EPC C1G2)
         
@@ -373,7 +373,11 @@ class RFIDReaderTCP:
         """
         
         print("\nPerforming Inventory Scan (Press Ctrl+C to stop)...")
-
+        
+        # 1. Note start time
+        start_time = time.time()
+        unique_tags = set()
+        
         # 1. Generate data array for inventory command
         data = [
             q_value,
@@ -392,44 +396,62 @@ class RFIDReaderTCP:
         if scan_time is not None:
             data.append(scan_time)
 
-        # 2. Send inventory command
-        self.send_command(0x01, data=data, address=address)
-        
-        # 3. Loop to receive all tag frames until a final status frame is received
-        while True:
+        while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
+            # 2. Send inventory command
+            self.send_command(0x01, data=data, address=address)
+            
             response_frame = self.receive_response()
-            # if not response_frame:
-            #     # response_frame = None received, exit loop
-            #     break
-
-            # try:
-            #     response_frame = response_frame.decode()
-            # except (UnicodeDecodeError, AttributeError):
-            #     pass
             
             if response_frame:
-                print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
-
-            """
-                Possible Status Codes for Inventory Response:
-                0x01 - Inventory successful
-                0x02 - Inventory timeout
-                0x03 - Further data available to be delivered
-                0x04 - Reader memory
-                0x26 - Inventory successful, now return statistic data
-                0xF8 - Antenna error detected, the current antenna may be disconnected
-            """
+                status = self.handle_response_frame(response_frame)
+                if status == 0x00:
+                    unique_tags.add(binascii.hexlify(response_frame).decode().upper())
+                    print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
             
-            status = self.handle_response_frame(response_frame)
-            if status == 0x00:
-                # Operation completed
-                print("Inventory operation completed.")
-                return
+            # Small sleep to prevent overwhelming the serial buffer
+            time.sleep(0.05)
+            
+        print(f"\nScan Finished! Total unique tags found: {len(unique_tags)}")
+        return list(unique_tags)
+        
+        # # 2. Send inventory command
+        # self.send_command(0x01, data=data, address=address)
+            
+        # # 3. Loop to receive all tag frames until a final status frame is received
+        # while True:
+        #     response_frame = self.receive_response()
+        #     # if not response_frame:
+        #     #     # response_frame = None received, exit loop
+        #     #     break
+
+        #     # try:
+        #     #     response_frame = response_frame.decode()
+        #     # except (UnicodeDecodeError, AttributeError):
+        #     #     pass
+            
+        #     if response_frame:
+        #         print(f"\n[INVENTORY RESPONSE FRAME] Received: {binascii.hexlify(response_frame).decode().upper()}")
+
+        #     """
+        #         Possible Status Codes for Inventory Response:
+        #         0x01 - Inventory successful
+        #         0x02 - Inventory timeout
+        #         0x03 - Further data available to be delivered
+        #         0x04 - Reader memory
+        #         0x26 - Inventory successful, now return statistic data
+        #         0xF8 - Antenna error detected, the current antenna may be disconnected
+        #     """
+            
+        #     status = self.handle_response_frame(response_frame)
+        #     if status == 0x00:
+        #         # Operation completed
+        #         print("Inventory operation completed.")
+        #         return
                 
-            # if status == 0x26:
-            #     # Statistics frame received, operation completed
-            #     print("Inventory statistics frame received, operation completed.")
-            #     break
+        #     # if status == 0x26:
+        #     #     # Statistics frame received, operation completed
+        #     #     print("Inventory statistics frame received, operation completed.")
+        #     #     break
     
     def inventory_with_buffer(self, address=0x00, scan_time_sec=5.0):
         """
@@ -591,7 +613,7 @@ if __name__ == "__main__":
     print("="*60)
     print("CHAFON CF815 RFID Reader TCP Interface")
     print("="*60)
-    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
     print("="*60)
     if reader.connect():
         while usr_input != "exit":
@@ -602,19 +624,6 @@ if __name__ == "__main__":
                 case "2":
                     # Perform Inventory Scan
                     try:
-                        # reader.inventory(
-                        #         address=READER_ADDRESS,
-                        #         q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
-                        #         session=0xFF,  # Smart session
-                        #         mask_mem=0x01,
-                        #         mask_adr=0x0020,
-                        #         mask_len=0x00,
-                        #         adr_tid=0x00,
-                        #         len_tid=0x00,
-                        #         target=0x00,  # Target A
-                        #         ant=0x80,  # Antenna 1
-                        #         scan_time= int(scn_time * 10)   # scan time in 100ms units
-                        #     )
                         
                         scan_duration = float(input("Enter scan time in seconds (0.3 - 25.5): "))
                         if scan_duration < 0.3 or scan_duration > 25.5:
@@ -633,23 +642,44 @@ if __name__ == "__main__":
                     except KeyboardInterrupt:
                         print("\n User ctrl+c pressed, stopping...")
                 case "3":
+                    scan_duration = float(input("Enter scan time in seconds (0.3 - 25.5): "))
+                    if scan_duration < 0.3 or scan_duration > 25.5:
+                        print("Invalid time.")
+                        continue
+                    
+                    reader.inventory(
+                        address=READER_ADDRESS,
+                        q_value=0b00000110,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                        session=0xFF,  # Smart session
+                        mask_mem=0x01,
+                        mask_adr=0x0000,
+                        mask_len=0x00,
+                        adr_tid=0x00,
+                        len_tid=0x00,
+                        target=0x00,  # Target A
+                        ant=0x80,  # Antenna 1
+                        scan_time= int(scan_duration * 10)   # scan time in 100ms units
+                        scan_time_sec=scan_duration
+                    )
+                
+                case "4":
                     scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
                     if scn_time < 0.3 or scn_time > 25.5:
                         print("Error: Scan time must be between 0.3 and 25.5 seconds.")
                         continue
                     # Set reader inventory scan time persistently
                     reader.set_scan_time_persistent(scan_time=scn_time, address=READER_ADDRESS)
-                case "4":
+                case "5":
                     antenna_power = int(input("Enter desired antenna power level (0-30 dBm): "))
                     if antenna_power < 0 or antenna_power > 30:
                         print("Error: Antenna power level must be between 0 and 30 dBm.")
                         continue
                     # Modify Antenna Power
                     reader.modify_antenna_power(address=READER_ADDRESS, power_level=antenna_power)
-                case "5":
+                case "6":
                     # Obtain EPC Tags in Memory Buffer Inventory
                     reader.obtain_inventory_buffer(address=READER_ADDRESS)
-                case "6":
+                case "7":
                     # Obtain Tag Amount in Memory Buffer
                     reader.obtain_tag_amount(address=READER_ADDRESS)
                 

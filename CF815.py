@@ -691,7 +691,6 @@ if __name__ == "__main__":
             time.sleep(0.5)
             print()
             print("="*60)
-            usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan\n3 - Set Inventory Scan Time\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
-            print("="*60)
+            usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
             
         reader.close()   

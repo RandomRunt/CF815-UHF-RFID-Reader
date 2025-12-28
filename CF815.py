@@ -404,7 +404,7 @@ class RFIDReaderTCP:
             
             if response_frame:
                 status = self.handle_response_frame(response_frame)
-                if status == 0x00:
+                if status == 0x01:
                     unique_tags.add(binascii.hexlify(response_frame).decode().upper())
                     print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
             

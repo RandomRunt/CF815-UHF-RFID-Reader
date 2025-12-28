@@ -658,7 +658,7 @@ if __name__ == "__main__":
                         len_tid=0x00,
                         target=0x00,  # Target A
                         ant=0x80,  # Antenna 1
-                        scan_time= int(scan_duration * 10)   # scan time in 100ms units
+                        scan_time= int(scan_duration * 10),   # scan time in 100ms units
                         scan_time_sec=scan_duration
                     )
                 

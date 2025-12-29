@@ -353,7 +353,7 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         self.handle_response_frame(response_frame)
 
-    def inventory(self, address=0x00, q_value=0b00000110, session=0x00, mask_mem=0x01, mask_adr=0x0000, mask_len=0x00
+    def inventory(self, address=0x00, q_value=0b00000100, session=0x00, mask_mem=0x01, mask_adr=0x0000, mask_len=0x00
                   , adr_tid=0x00, len_tid=0x00, target=None, ant=None, scan_time=None, scan_time_sec=5.0):
         """
         Command 0x01: Tag Inventory (EPC C1G2)
@@ -395,9 +395,6 @@ class RFIDReaderTCP:
             data.append(ant)
         if scan_time is not None:
             data.append(scan_time)
-
-                
-        data = [0x06, 0x00]
 
         while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
             # 2. Send inventory command

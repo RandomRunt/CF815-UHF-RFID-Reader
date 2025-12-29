@@ -405,8 +405,16 @@ class RFIDReaderTCP:
             if response_frame:
                 status = self.handle_response_frame(response_frame)
                 if status == 0x01:
-                    unique_tags.add(binascii.hexlify(response_frame).decode().upper())
-                    print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
+                    # Inventory successful, parse tag data
+                    # Extract Data from frame
+                    data = response_frame[4:-2]  # Data starts at index 4, ends before the last 2 bytes (LSB and MSB CRC16)
+                    if len(data) >= 2:
+                        epc_length = data[0]  # First byte is EPC length in bytes
+                        epc_data = data[1:1 + epc_length]
+                        epc_hex = binascii.hexlify(epc_data).decode().upper()
+                        if epc_hex not in unique_tags:
+                            unique_tags.add(epc_hex)
+                            print(f"  Tag Found: EPC={epc_hex}")
             
             # Small sleep to prevent overwhelming the serial buffer
             time.sleep(0.05)

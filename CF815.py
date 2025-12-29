@@ -372,6 +372,19 @@ class RFIDReaderTCP:
             scan_time: (optional) Scan time in scan_time*100ms
         """
         
+        print(f"\n--- ROBUST SCAN (Profile 1: Miller-4) ---")
+        
+        # 1. FORCE PROFILE 1 (Miller-4 250KHz)
+        # Command 0x7F: Setup Reader Profile
+        # Data: 0x81 (Bit7=1 for 'Modify', Value=1 for 'Profile 1')
+        print("Configuring Reader to Profile 1 (Miller-4)...")
+        self.send_command(0x7F, data=[0x81], address=address)
+        resp = self.receive_response()
+        if resp == 0x00:
+            print(" -> Profile set successfully.")
+        else:
+            print(" -> Failed to set profile (or already set).")
+        
         print("\nPerforming Inventory Scan (Press Ctrl+C to stop)...")
         
         # 1. Note start time

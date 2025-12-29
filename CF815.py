@@ -396,6 +396,9 @@ class RFIDReaderTCP:
         if scan_time is not None:
             data.append(scan_time)
 
+                
+        data = [0x06, 0x00]
+
         while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
             # 2. Send inventory command
             self.send_command(0x01, data=data, address=address)
@@ -492,8 +495,6 @@ class RFIDReaderTCP:
             0x80,       # Antenna 1
             scan_time_hex # ScanTime (Mandatory for this logic)
         ]
-        
-        data = [0x06, 0x00]
 
         # 3. Send Command 0x18
         self.send_command(0x18, data=data, address=address)

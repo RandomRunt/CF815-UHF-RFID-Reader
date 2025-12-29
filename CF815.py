@@ -631,6 +631,37 @@ class RFIDReaderTCP:
                     
         except KeyboardInterrupt:
             print("\nStopped.")
+    
+    def check_antenna_health(self, address=0x00):
+        print("\n--- ANTENNA RETURN LOSS CHECK ---")
+        # Command 0x91: Measure Return Loss 
+        # Data: TestFreq(4 bytes) + Ant(1 byte)
+        # Test Frequency: 915 MHz (Middle of US Band) = 915,000 KHz
+        # 915,000 in Hex = 0x0D F5 E0
+        
+        freq_hex = [0x00, 0x0D, 0xF5, 0xE0] # 4 bytes, MSB first
+        antenna = 0x00 # 0x00 = Antenna 1 (Note: 0x91 uses 0-based index, unlike 0x01)
+        
+        data = freq_hex + [antenna]
+        
+        self.send_command(0x91, data=data, address=address)
+        response = self.receive_response()
+        
+        if response and len(response) > 5 and response[3] == 0x00:
+            # Data byte 0 is the Return Loss in dB
+            rl_db = response[4] 
+            print(f"Antenna 1 Return Loss: {rl_db} dB")
+            
+            if rl_db > 10:
+                print(" -> STATUS: EXCELLENT. Antenna is radiating well.")
+            elif rl_db > 5:
+                print(" -> STATUS: POOR. Check cable tightness and positioning.")
+            else:
+                print(" -> STATUS: FAIL. The antenna is rejecting the signal.")
+                print("    Possible causes: Broken cable, wrong antenna frequency (EU vs US), or damage.")
+        else:
+            print("Failed to measure Return Loss.")
+    
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
     #     Australian UHF RFID Standard:
@@ -735,7 +766,8 @@ if __name__ == "__main__":
                     reader.obtain_tag_amount(address=READER_ADDRESS)
                 case "8":
                     # Misc / Test Commands
-                    reader.find_tags_all_antennas(address=READER_ADDRESS)
+                    # reader.find_tags_all_antennas(address=READER_ADDRESS)
+                    reader.check_antenna_health(address=READER_ADDRESS)
                 
                 case "exit":
                     print("Exiting...")

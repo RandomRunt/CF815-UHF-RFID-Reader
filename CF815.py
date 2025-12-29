@@ -592,6 +592,44 @@ class RFIDReaderTCP:
         response = self.receive_response()
         self.handle_response_frame(response)
     
+    def find_tags_all_antennas(self, address=0x00):
+        print("\n--- PORT SCANNER MODE ---")
+        print("Cycling through Antennas 1-4. Press Ctrl+C to stop.\n")
+        
+        # Antenna IDs for standard 4-port reader (CMD 0x01 format)
+        # 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
+        antennas = [0x80, 0x81, 0x82, 0x83]
+        
+        try:
+            while True:
+                for ant_id in antennas:
+                    # print(f"Scanning Antenna {ant_id - 0x80 + 1}...", end='\r')
+                    
+                    # Packet: Q=0, Session=0, Mask=None, Target=0, Ant=Variable, Time=Small
+                    data = [
+                        0x06, 0x00,             # Q=6, Session 0
+                        0x00, 0x00, 0x00, 0x00, # No Mask
+                        0x00, 0x00,             # No TID
+                        0x00, ant_id, 0x05      # Target A, CURRENT ANT, 500ms Time
+                    ]
+
+                    self.send_command(0x01, data=data, address=address)
+                    response = self.receive_response()
+                    
+                    if response and len(response) > 6:
+                        raw_data = response[4:-2]
+                        # Byte 0 is Ant ID, Byte 1 is Count
+                        if len(raw_data) >= 2:
+                            num_tags = raw_data[1]
+                            if num_tags > 0:
+                                print(f"\n [!!!] TAG FOUND ON ANTENNA {ant_id - 0x80 + 1}!")
+                                print(f"       Raw Data: {raw_data.hex().upper()}")
+                                # Optional: Return here if you just want to find the port
+                    
+                    time.sleep(0.05) # Fast cycle
+                    
+        except KeyboardInterrupt:
+            print("\nStopped.")
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
     #     Australian UHF RFID Standard:
@@ -625,7 +663,7 @@ if __name__ == "__main__":
     print("="*60)
     print("CHAFON CF815 RFID Reader TCP Interface")
     print("="*60)
-    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
+    usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Set Scan Time\n5 - Modify Antenna Power\n6 - Obtain EPC Tags in Memory Buffer Inventory\n7 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
     print("="*60)
     if reader.connect():
         while usr_input != "exit":
@@ -661,7 +699,7 @@ if __name__ == "__main__":
                     
                     reader.inventory(
                         address=READER_ADDRESS,
-                        q_value=0b00000000,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                        q_value=0b00000100,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
                         session=0x00,  # Smart session
                         mask_mem=0x01,
                         mask_adr=0x0000,
@@ -694,7 +732,9 @@ if __name__ == "__main__":
                 case "7":
                     # Obtain Tag Amount in Memory Buffer
                     reader.obtain_tag_amount(address=READER_ADDRESS)
-                
+                case "8":
+                    # Misc / Test Commands
+                    reader.find_tags_all_antennas(address=READER_ADDRESS)
                 
                 case "exit":
                     print("Exiting...")
@@ -703,6 +743,5 @@ if __name__ == "__main__":
             time.sleep(0.5)
             print()
             print("="*60)
-            usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Modify Antenna Power\n5 - Obtain EPC Tags in Memory Buffer Inventory\n6 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
-            
+            usr_input = input("Select operation:\n1 - Get Reader Info\n2 - Perform Inventory Scan with Buffer\n3 - Perform Inventory Scan with Manual Timing\n4 - Set Scan Time\n5 - Modify Antenna Power\n6 - Obtain EPC Tags in Memory Buffer Inventory\n7 - Obtain Tag Amount in Memory Buffer\nEnter choice (as a number) or 'exit' to quit: ")
         reader.close()   

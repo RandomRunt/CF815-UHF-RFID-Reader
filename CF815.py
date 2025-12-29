@@ -406,7 +406,6 @@ class RFIDReaderTCP:
             if response_frame:
                 status = self.handle_response_frame(response_frame)
                 if status == 0x01 and response_length > 7:
-                
                     tag_data = response_frame[5:-2]  # Extract tag data
                     if tag_data is None or len(tag_data) == 0:
                         continue
@@ -659,7 +658,7 @@ if __name__ == "__main__":
                     
                     reader.inventory(
                         address=READER_ADDRESS,
-                        q_value=0b00000001,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
+                        q_value=0b00000000,   # 0x06 = 0b00000110 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=6)
                         session=0x00,  # Smart session
                         mask_mem=0x01,
                         mask_adr=0x0000,

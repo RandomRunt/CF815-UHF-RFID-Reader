@@ -492,6 +492,8 @@ class RFIDReaderTCP:
             0x80,       # Antenna 1
             scan_time_hex # ScanTime (Mandatory for this logic)
         ]
+        
+        data = [0x06, 0x00]
 
         # 3. Send Command 0x18
         self.send_command(0x18, data=data, address=address)

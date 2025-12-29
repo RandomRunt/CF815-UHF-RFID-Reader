@@ -380,7 +380,7 @@ class RFIDReaderTCP:
         print("Configuring Reader to Profile 1 (Miller-4)...")
         self.send_command(0x7F, data=[0x81], address=address)
         resp = self.receive_response()
-        if resp[2] == 0x00:
+        if resp[2] == 0x7F and resp[3] == 0x00:
             print(" -> Profile set successfully.")
         else:
             print(" -> Failed to set profile (or already set).")

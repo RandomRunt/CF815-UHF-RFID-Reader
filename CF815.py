@@ -614,6 +614,7 @@ class RFIDReaderTCP:
                     ]
 
                     self.send_command(0x01, data=data, address=address)
+                    print("Scanning Antenna {}...".format(ant_id - 0x80 + 1), end='\r')
                     response = self.receive_response()
                     
                     if response and len(response) > 6:

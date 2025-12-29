@@ -608,7 +608,7 @@ class RFIDReaderTCP:
                     # Packet: Q=0, Session=0, Mask=None, Target=0, Ant=Variable, Time=Small
                     data = [
                         0x06, 0x00,             # Q=6, Session 0
-                        0x00, 0x00, 0x00, 0x00, # No Mask
+                        0x01, 0x00, 0x00, 0x00, # No Mask
                         0x00, 0x00,             # No TID
                         0x00, ant_id, 0x05      # Target A, CURRENT ANT, 500ms Time
                     ]

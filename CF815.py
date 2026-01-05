@@ -511,7 +511,7 @@ class RFIDReaderTCP:
             # Quick 200ms scan
             data = [
                 q_value,           # Q value
-                0xFF,              # Auto session
+                0x00,              # Auto session
                 0x01, 0x00, 0x00,  # No mask
                 0x00,              # MaskLen
                 0x00, 0x00,        # No TID

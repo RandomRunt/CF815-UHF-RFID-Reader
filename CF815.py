@@ -587,7 +587,7 @@ class RFIDReaderTCP:
         #         AdrTID(1), LenTID(1), Target(1), Ant(1), ScanTime(1)
         data = [
             0x06,       # QValue    0b00000110 = 0x06 (No Stats, Standard Strategy, No FastID, No Phase, Q=6)
-            0x00,       # Session (0xFF = Smart/Auto)
+            0x00,       # Session (0x00 = S0 Read any tag immediately, 0xFF = Smart/Auto)
             0x01,       # MaskMem (EPC)
             0x00, 0x00, # MaskAdr
             0x00,       # MaskLen
@@ -830,22 +830,22 @@ if __name__ == "__main__":
                         print("Invalid time.")
                         continue
                     
-                    # reader.inventory(
-                    #     address=READER_ADDRESS,
-                    #     q_value=0b00000000,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
-                    #     session=0x00,  # Smart session
-                    #     mask_mem=0x01,
-                    #     mask_adr=0x0000,
-                    #     mask_len=0x00,
-                    #     adr_tid=0x00,
-                    #     len_tid=0x00,
-                    #     target=0x00,  # Target A
-                    #     ant=0x81,  # Antenna 2 -> 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
-                    #     scan_time=int(scan_duration * 10),   # old: int(scan_duration * 10) scan time in 100ms units
-                    #     scan_time_sec=scan_duration
-                    # )
+                    reader.inventory(
+                        address=READER_ADDRESS,
+                        q_value=0b00000110,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
+                        session=0x00,  # Smart session
+                        mask_mem=0x01,
+                        mask_adr=0x0000,
+                        mask_len=0x00,
+                        adr_tid=0x00,
+                        len_tid=0x00,
+                        target=0x00,  # Target A
+                        ant=0x81,  # Antenna 2 -> 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
+                        scan_time=int(scan_duration * 10),   # old: int(scan_duration * 10) scan time in 100ms units
+                        scan_time_sec=scan_duration
+                    )
                     
-                    tags = reader.inventory_continuous(address=READER_ADDRESS, duration_sec=scan_duration)
+                    # tags = reader.inventory_continuous(address=READER_ADDRESS, duration_sec=scan_duration)
 
                 
                 case "4":

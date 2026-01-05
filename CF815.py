@@ -416,19 +416,19 @@ class RFIDReaderTCP:
         response_frame = self.receive_response()
         response_length = response_frame[0]
         
-        if response_frame:
-            status = self.handle_response_frame(response_frame)
-            if status == 0x01 and response_length > 7:
-                tag_data = response_frame[5:-2]  # Extract tag data
-                if tag_data is None or len(tag_data) == 0:
-                    pass
-                else:
-                    tag_epc = binascii.hexlify(tag_data).decode().upper()
-                    if tag_epc not in unique_tags:
-                        unique_tags.add(tag_epc)
-                        print(f"\n[NEW TAG DETECTED] EPC: {tag_epc}")
+        # if response_frame:
+        #     status = self.handle_response_frame(response_frame)
+        #     if status == 0x01 and response_length > 7:
+        #         tag_data = response_frame[5:-2]  # Extract tag data
+        #         if tag_data is None or len(tag_data) == 0:
+        #             pass
+        #         else:
+        #             tag_epc = binascii.hexlify(tag_data).decode().upper()
+        #             if tag_epc not in unique_tags:
+        #                 unique_tags.add(tag_epc)
+        #                 print(f"\n[NEW TAG DETECTED] EPC: {tag_epc}")
 
-                print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
+        #         print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
         
         # while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
         #     # 2. Send inventory command

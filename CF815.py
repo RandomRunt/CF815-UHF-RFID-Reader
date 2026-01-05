@@ -112,6 +112,7 @@ class RFIDReaderTCP:
             # 1. Read the first byte (Len)
             len_byte_data = self.ser.read()
             print("len_byte_data:", len_byte_data)
+            return len_byte_data
             # if not len_byte_data:
             #     return None  # Timeout or no data
             

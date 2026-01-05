@@ -408,29 +408,49 @@ class RFIDReaderTCP:
         if scan_time is not None:
             data.append(0x05)
 
-        while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
-            # 2. Send inventory command
-            self.send_command(0x01, data=data, address=address)
-            
-            response_frame = self.receive_response()
-            response_length = response_frame[0]
-            
-            if response_frame:
-                status = self.handle_response_frame(response_frame)
-                if status == 0x01 and response_length > 7:
-                    tag_data = response_frame[5:-2]  # Extract tag data
-                    if tag_data is None or len(tag_data) == 0:
-                        continue
-                    else:
-                        tag_epc = binascii.hexlify(tag_data).decode().upper()
-                        if tag_epc not in unique_tags:
-                            unique_tags.add(tag_epc)
-                            print(f"\n[NEW TAG DETECTED] EPC: {tag_epc}")
+        # 2. Send inventory command
+        self.send_command(0x01, data=data, address=address)
+        
+        response_frame = self.receive_response()
+        response_length = response_frame[0]
+        
+        if response_frame:
+            status = self.handle_response_frame(response_frame)
+            if status == 0x01 and response_length > 7:
+                tag_data = response_frame[5:-2]  # Extract tag data
+                if tag_data is None or len(tag_data) == 0:
+                    pass
+                else:
+                    tag_epc = binascii.hexlify(tag_data).decode().upper()
+                    if tag_epc not in unique_tags:
+                        unique_tags.add(tag_epc)
+                        print(f"\n[NEW TAG DETECTED] EPC: {tag_epc}")
 
-                    print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
+                print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
+        
+        # while time.time() - start_time < scan_time_sec:  # Limit total inventory time to 30 seconds
+        #     # 2. Send inventory command
+        #     self.send_command(0x01, data=data, address=address)
             
-            # Small sleep to prevent overwhelming the serial buffer
-            time.sleep(0.05)
+        #     response_frame = self.receive_response()
+        #     response_length = response_frame[0]
+            
+        #     if response_frame:
+        #         status = self.handle_response_frame(response_frame)
+        #         if status == 0x01 and response_length > 7:
+        #             tag_data = response_frame[5:-2]  # Extract tag data
+        #             if tag_data is None or len(tag_data) == 0:
+        #                 continue
+        #             else:
+        #                 tag_epc = binascii.hexlify(tag_data).decode().upper()
+        #                 if tag_epc not in unique_tags:
+        #                     unique_tags.add(tag_epc)
+        #                     print(f"\n[NEW TAG DETECTED] EPC: {tag_epc}")
+
+        #             print(f"Tags Found So Far: {len(unique_tags)}", end="\r")
+            
+        #     # Small sleep to prevent overwhelming the serial buffer
+        #     time.sleep(0.05)
             
         print(f"\nScan Finished! Total unique tags found: {len(unique_tags)}")
         return list(unique_tags)
@@ -573,7 +593,7 @@ class RFIDReaderTCP:
         bit0 ~ bit6: RF power setting, the valid value of this parameter is 0 ~ 30. For setting of 30, the
         output power is approximately 1W.
         UHF RFID Reader Series User Manual v2.20
-        64
+        
         bit7: configuration preservation status during power off.
         0 - configuration preserved during reader power off;
         1 - configuration is not preserved
@@ -715,7 +735,6 @@ if __name__ == "__main__":
                 case "2":
                     # Perform Inventory Scan
                     try:
-                        
                         scan_duration = float(input("Enter scan time in seconds (0.3 - 25.5): "))
                         if scan_duration < 0.3 or scan_duration > 25.5:
                             print("Invalid time.")

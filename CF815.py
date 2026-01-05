@@ -516,7 +516,7 @@ class RFIDReaderTCP:
                 0x01, 0x00, 0x00,  # No mask
                 0x00,              # MaskLen
                 0x00, 0x00,        # No TID
-                0x01,              # Target A
+                0x00,              # Target A
                 0x80,              # Antenna 1
                 0x05               # 500ms scan (5 × 100ms)
             ]

@@ -44,7 +44,7 @@ class RFIDReaderTCP:
             self._debug_print(f"Attempting to connect to {url}...")
             # The baudrate here is a formality for pyserial's socket://,
             # as TCP/IP doesn't have a baudrate, but we set it for consistency.
-            self.ser = serial.serial_for_url(url, baudrate=self.baudrate, timeout=None)
+            self.ser = serial.serial_for_url(url, baudrate=self.baudrate, timeout=2.0)
             self._debug_print(f"Successfully connected to {url}")
             return True
         except Exception as e:

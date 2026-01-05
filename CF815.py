@@ -794,8 +794,8 @@ if __name__ == "__main__":
                     reader.obtain_tag_amount(address=READER_ADDRESS)
                 case "8":
                     # Misc / Test Commands
-                    # reader.find_tags_all_antennas(address=READER_ADDRESS)
-                    reader.check_antenna_health(address=READER_ADDRESS)
+                    reader.find_tags_all_antennas(address=READER_ADDRESS)
+                    # reader.check_antenna_health(address=READER_ADDRESS)
                 
                 case "exit":
                     print("Exiting...")

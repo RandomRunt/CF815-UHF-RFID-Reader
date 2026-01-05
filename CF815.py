@@ -11,6 +11,7 @@ class RFIDReaderTCP:
         self.baudrate = baudrate
         self.ser = None
         self.debug = debug
+        self.buzzer_on = False
 
     def _debug_print(self, message):
         """ Only print debug messages if debug mode is enabled. """
@@ -495,7 +496,7 @@ class RFIDReaderTCP:
         #     #     print("Inventory statistics frame received, operation completed.")
         #     #     break
         
-    def inventory_continuous(self, address=0x00, duration_sec=5.0, q_value=0x04):
+    def inventory_continuous(self, address=0x00, duration_sec=5.0):
         """
         Continuously poll for tags (like Windows app does).
         This sends many quick scans instead of one long scan.
@@ -509,21 +510,21 @@ class RFIDReaderTCP:
         while time.time() - start_time < duration_sec:
             scan_count += 1
             
-            # Quick 200ms scan
             data = [
-                q_value,           # Q value
-                0x00,              # Auto session
+                0x04,           # Q value
+                0xFF,              # Auto session
                 0x01, 0x00, 0x00,  # No mask
                 0x00,              # MaskLen
                 0x00, 0x00,        # No TID
                 0x00,              # Target A
                 0x80,              # Antenna 1
-                0x05               # 500ms scan (5 × 100ms)
+                0x32               # 5000ms scan (50 × 100ms)
             ]
             
             self.send_command(0x01, data=data, address=address)
             response = self.receive_response()
             
+            tags_found_in_this_round = 0
             if response and len(response) > 6:
                 num_tags = response[5]
                 
@@ -554,10 +555,12 @@ class RFIDReaderTCP:
             
             # Show progress
             elapsed = time.time() - start_time
-            print(f"Scans: {scan_count} | Tags: {len(unique_tags)} | Time: {elapsed:.1f}s", 
-                end="\r", flush=True)
+            print(f"Scans: {scan_count} | Unique Tags: {len(unique_tags)} | Time: {elapsed:.1f}s", end="\r", flush=True)
             
-            time.sleep(0.05)  # Small delay between scans
+            if tags_found_in_this_round == 0:
+                time.sleep(0.3)  # Small delay between scans
+            else:
+                pass
         
         print(f"\n\n=== SCAN COMPLETE ===")
         print(f"Total scans: {scan_count}")
@@ -765,6 +768,19 @@ class RFIDReaderTCP:
         else:
             print("Failed to measure Return Loss.")
     
+    def set_buzzer_mode(self, address=0x00, mode=0x00):
+        """
+        Command 0x9E: Set Buzzer Mode
+        Data[] Parameters:
+            mode: Buzzer mode
+                0x00 - Disable Buzzer
+                0x01 - Enable Buzzer
+        """
+        print(f"\nSetting Buzzer Mode to {mode}...")
+        self.send_command(0x40, data=[mode], address=address)
+        response_frame = self.receive_response()
+        self.handle_response_frame(response_frame)
+    
     # def set_working_frequency(self, address=0x00, max_fre=0x01, min_fre=0x00):
     #     """
     #     Australian UHF RFID Standard:
@@ -873,6 +889,15 @@ if __name__ == "__main__":
                     # Misc / Test Commands
                     # reader.find_tags_all_antennas(address=READER_ADDRESS)
                     reader.check_antenna_health(address=READER_ADDRESS)
+                case "9":
+                    if buzzer_on:
+                        buzzer_on = False
+                        reader.set_buzzer_mode(address=READER_ADDRESS, mode=0x00)
+                        print("Toggling Buzzer Mode OFF...   ")
+                    else:
+                        buzzer_on = True
+                        reader.set_buzzer_mode(address=READER_ADDRESS, mode=0x01)
+                        print("Toggling Buzzer Mode ON...   ")
                 
                 case "exit":
                     print("Exiting...")

@@ -495,7 +495,77 @@ class RFIDReaderTCP:
         #     #     # Statistics frame received, operation completed
         #     #     print("Inventory statistics frame received, operation completed.")
         #     #     break
+    
+    def inventory_continuous_async(self, address=0x00, duration_sec=10.0):
+        print(f"\n=== ASYNC SCAN MODE ({duration_sec}s) ===")
         
+        start_time = time.time()
+        unique_tags = {}
+        scan_count = 0
+        
+        while time.time() - start_time < duration_sec:
+            scan_count += 1
+            
+            # 1. Send Command
+            data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x32]
+            self.send_command(0x01, data=data, address=address)
+            
+            # 2. THE LISTENING LOOP
+            # We must stay here collecting packets until the 300ms is actually UP
+            # or we receive a specific "Command Complete" packet.
+            
+            round_start = time.time()
+            tags_found_in_this_round = 0
+            
+            # We listen for slightly longer than the scan duration (300ms + 50ms buffer)
+            # to ensure we catch the final packet.
+            while (time.time() - round_start) < 0.35: 
+                
+                # Check if data is available in buffer without blocking forever
+                if self.serial.in_waiting > 0:
+                    response = self.receive_response() 
+                    
+                    if not response:
+                        continue
+
+                    # CASE A: It's just an ACK (e.g. length is small, status OK)
+                    if len(response) < 6:
+                        continue 
+                        
+                    # CASE B: It's a Summary Packet (Total count)
+                    # Many E710 readers send a packet at the very end saying "I saw X tags"
+                    # If you can identify this packet, you can break the loop early!
+                    # if is_end_of_scan_packet(response): 
+                    #     break 
+
+                    # CASE C: It's Tag Data
+                    if len(response) > 6:
+                        # Process tags (Same parsing logic as before)
+                        num_tags = response[5]
+                        if num_tags > 0:
+                            tags_found_in_this_round += num_tags
+                            # ... (extract EPCs, add to unique_tags) ...
+                            
+                else:
+                    # Tiny sleep to prevent CPU spiking while waiting for serial data
+                    time.sleep(0.01)
+
+            # 3. DECISION TIME (Adaptive Logic)
+            elapsed_total = time.time() - start_time
+            print(f"Scans: {scan_count} | Tags Found: {len(unique_tags)}", end="\r")
+            
+            if tags_found_in_this_round > 0:
+                # VIOLENT FLASH:
+                # If we found tags, loop immediately. 
+                # Since we already waited ~350ms in the listening loop, 
+                # we just go straight to 'while' top without extra sleep.
+                pass 
+            else:
+                # HEARTBEAT:
+                # If we sat there for 350ms and heard nothing, 
+                # wait an EXTRA 300ms to create the "off" blink.
+                time.sleep(0.3)
+    
     def inventory_continuous(self, address=0x00, duration_sec=5.0):
         """
         Continuously poll for tags (like Windows app does).
@@ -862,8 +932,9 @@ if __name__ == "__main__":
                     #     scan_time_sec=scan_duration
                     # )
                     
-                    tags = reader.inventory_continuous(address=READER_ADDRESS, duration_sec=scan_duration)
+                    # tags = reader.inventory_continuous(address=READER_ADDRESS, duration_sec=scan_duration)
 
+                    tags = reader.inventory_continuous_async(address=READER_ADDRESS, duration_sec=scan_duration)
                 
                 case "4":
                     scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))

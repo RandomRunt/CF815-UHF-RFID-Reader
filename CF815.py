@@ -110,33 +110,34 @@ class RFIDReaderTCP:
 
         try:
             # 1. Read the first byte (Len)
-            len_byte_data = self.ser.read(1)
-            if not len_byte_data:
-                return None  # Timeout or no data
+            len_byte_data = self.ser.read()
+            print("len_byte_data:", len_byte_data)
+            # if not len_byte_data:
+            #     return None  # Timeout or no data
             
-            # 2. Calculate total bytes for the frame (including initial Len byte)
-            len_field_value = len_byte_data[0]
-            total_frame_length = 1 + len_field_value
+            # # 2. Calculate total bytes for the frame (including initial Len byte)
+            # len_field_value = len_byte_data[0]
+            # total_frame_length = 1 + len_field_value
 
-            # 2. Read the remaining bytes of the frame (len_field_value bytes)
-            # The 'Len' field value includes Adr, reCmd, Status, Data[], CRC16 (2 bytes)
-            remaining_frame_data = self.ser.read(len_field_value)
-            if len(remaining_frame_data) != len_field_value:
-                print(f"Error: Incomplete frame received. Expected {len_field_value} bytes, got {len(remaining_frame_data)}.")
-                return None  # Incomplete frame
+            # # 2. Read the remaining bytes of the frame (len_field_value bytes)
+            # # The 'Len' field value includes Adr, reCmd, Status, Data[], CRC16 (2 bytes)
+            # remaining_frame_data = self.ser.read(len_field_value)
+            # if len(remaining_frame_data) != len_field_value:
+            #     print(f"Error: Incomplete frame received. Expected {len_field_value} bytes, got {len(remaining_frame_data)}.")
+            #     return None  # Incomplete frame
 
-            full_frame = len_byte_data + remaining_frame_data
+            # full_frame = len_byte_data + remaining_frame_data
             
-            # Verify CRC16 using the reader's CRC algorithm (preset 0xFFFF, poly 0x8408).
-            # Per device behaviour, calculating CRC over the full frame (including CRC bytes)
-            # should give 0x0000 when CRC bytes are correct.
-            crc_check = self._calculate_crc16(full_frame)
-            if crc_check == 0x0000:
-                self._debug_print(f"Received (Valid CRC): {binascii.hexlify(full_frame).decode().upper()}")
-                return full_frame
-            else:
-                print(f"CRC16 mismatch for received frame: {binascii.hexlify(full_frame).decode().upper()} (crc={crc_check:04X})")
-                return None
+            # # Verify CRC16 using the reader's CRC algorithm (preset 0xFFFF, poly 0x8408).
+            # # Per device behaviour, calculating CRC over the full frame (including CRC bytes)
+            # # should give 0x0000 when CRC bytes are correct.
+            # crc_check = self._calculate_crc16(full_frame)
+            # if crc_check == 0x0000:
+            #     self._debug_print(f"Received (Valid CRC): {binascii.hexlify(full_frame).decode().upper()}")
+            #     return full_frame
+            # else:
+            #     print(f"CRC16 mismatch for received frame: {binascii.hexlify(full_frame).decode().upper()} (crc={crc_check:04X})")
+            #     return None
         except Exception as e:
             print(f"Error receiving data: {e}")
             return None

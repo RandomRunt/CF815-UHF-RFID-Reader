@@ -493,6 +493,79 @@ class RFIDReaderTCP:
         #     #     # Statistics frame received, operation completed
         #     #     print("Inventory statistics frame received, operation completed.")
         #     #     break
+        
+    def inventory_continuous(self, address=0x00, duration_sec=5.0, q_value=0x00):
+        """
+        Continuously poll for tags (like Windows app does).
+        This sends many quick scans instead of one long scan.
+        """
+        print(f"\n=== CONTINUOUS SCAN MODE ({duration_sec}s) ===")
+        
+        start_time = time.time()
+        unique_tags = {}  # Store EPC -> last seen time
+        scan_count = 0
+        
+        while time.time() - start_time < duration_sec:
+            scan_count += 1
+            
+            # Quick 200ms scan
+            data = [
+                q_value,           # Q value
+                0xFF,              # Auto session
+                0x01, 0x00, 0x00,  # No mask
+                0x00,              # MaskLen
+                0x00, 0x00,        # No TID
+                0x00,              # Target A
+                0x81,              # Antenna 2
+                0x02               # 200ms scan (2 × 100ms)
+            ]
+            
+            self.send_command(0x01, data=data, address=address)
+            response = self.receive_response()
+            
+            if response and len(response) > 6:
+                num_tags = response[5]
+                
+                if num_tags > 0:
+                    idx = 6
+                    for _ in range(num_tags):
+                        if idx >= len(response) - 2:
+                            break
+                        
+                        epc_len = response[idx]
+                        idx += 1
+                        
+                        if idx + epc_len + 1 > len(response) - 2:
+                            break
+                        
+                        epc_bytes = response[idx:idx + epc_len]
+                        idx += epc_len
+                        
+                        rssi = response[idx]
+                        idx += 1
+                        
+                        epc_hex = binascii.hexlify(epc_bytes).decode().upper()
+                        
+                        if epc_hex not in unique_tags:
+                            print(f"\n[NEW TAG] {epc_hex} (RSSI: {rssi})")
+                        
+                        unique_tags[epc_hex] = time.time()
+            
+            # Show progress
+            elapsed = time.time() - start_time
+            print(f"Scans: {scan_count} | Tags: {len(unique_tags)} | Time: {elapsed:.1f}s", 
+                end="\r", flush=True)
+            
+            time.sleep(0.05)  # Small delay between scans
+        
+        print(f"\n\n=== SCAN COMPLETE ===")
+        print(f"Total scans: {scan_count}")
+        print(f"Unique tags: {len(unique_tags)}")
+        
+        for epc in unique_tags:
+            print(f"  > {epc}")
+        
+        return list(unique_tags.keys())
     
     def inventory_with_buffer(self, address=0x00, scan_time_sec=5.0):
         """
@@ -669,7 +742,7 @@ class RFIDReaderTCP:
         # 915,000 in Hex = 0x0D F5 E0
         
         freq_hex = [0x00, 0x0D, 0xF5, 0xE0] # 4 bytes, MSB first
-        antenna = 0x00 # 0x00 = Antenna 1 (Note: 0x91 uses 0-based index, unlike 0x01)
+        antenna = 0x01 # 0x00 = Antenna 1, 0x01 = Antenna 2 (Note: 0x91 uses 0-based index, unlike 0x01)
         
         data = freq_hex + [antenna]
         
@@ -757,20 +830,23 @@ if __name__ == "__main__":
                         print("Invalid time.")
                         continue
                     
-                    reader.inventory(
-                        address=READER_ADDRESS,
-                        q_value=0b00000000,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
-                        session=0x00,  # Smart session
-                        mask_mem=0x01,
-                        mask_adr=0x0000,
-                        mask_len=0x00,
-                        adr_tid=0x00,
-                        len_tid=0x00,
-                        target=0x00,  # Target A
-                        ant=0x81,  # Antenna 2 -> 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
-                        scan_time=int(scan_duration * 10),   # old: int(scan_duration * 10) scan time in 100ms units
-                        scan_time_sec=scan_duration
-                    )
+                    # reader.inventory(
+                    #     address=READER_ADDRESS,
+                    #     q_value=0b00000000,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
+                    #     session=0x00,  # Smart session
+                    #     mask_mem=0x01,
+                    #     mask_adr=0x0000,
+                    #     mask_len=0x00,
+                    #     adr_tid=0x00,
+                    #     len_tid=0x00,
+                    #     target=0x00,  # Target A
+                    #     ant=0x81,  # Antenna 2 -> 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
+                    #     scan_time=int(scan_duration * 10),   # old: int(scan_duration * 10) scan time in 100ms units
+                    #     scan_time_sec=scan_duration
+                    # )
+                    
+                    tags = reader.inventory_continuous(address=READER_ADDRESS, duration_sec=scan_duration)
+
                 
                 case "4":
                     scn_time = float(input("Enter desired inventory scan time in seconds (valid range: 0.3-25.5): "))
@@ -794,8 +870,8 @@ if __name__ == "__main__":
                     reader.obtain_tag_amount(address=READER_ADDRESS)
                 case "8":
                     # Misc / Test Commands
-                    reader.find_tags_all_antennas(address=READER_ADDRESS)
-                    # reader.check_antenna_health(address=READER_ADDRESS)
+                    # reader.find_tags_all_antennas(address=READER_ADDRESS)
+                    reader.check_antenna_health(address=READER_ADDRESS)
                 
                 case "exit":
                     print("Exiting...")

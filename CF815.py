@@ -494,7 +494,7 @@ class RFIDReaderTCP:
         #     #     print("Inventory statistics frame received, operation completed.")
         #     #     break
         
-    def inventory_continuous(self, address=0x00, duration_sec=5.0, q_value=0x03):
+    def inventory_continuous(self, address=0x00, duration_sec=5.0, q_value=0x06):
         """
         Continuously poll for tags (like Windows app does).
         This sends many quick scans instead of one long scan.
@@ -586,8 +586,8 @@ class RFIDReaderTCP:
         # Format: Q(1), Session(1), MaskMem(1), MaskAdr(2), MaskLen(1), 
         #         AdrTID(1), LenTID(1), Target(1), Ant(1), ScanTime(1)
         data = [
-            0x03,       # QValue    0b00000110 = 0x06 (No Stats, Standard Strategy, No FastID, No Phase, Q=6)
-            0xFF,       # Session (0xFF = Smart/Auto)
+            0x06,       # QValue    0b00000110 = 0x06 (No Stats, Standard Strategy, No FastID, No Phase, Q=6)
+            0x00,       # Session (0xFF = Smart/Auto)
             0x01,       # MaskMem (EPC)
             0x00, 0x00, # MaskAdr
             0x00,       # MaskLen

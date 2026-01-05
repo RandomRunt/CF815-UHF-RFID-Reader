@@ -742,7 +742,7 @@ class RFIDReaderTCP:
         # 915,000 in Hex = 0x0D F5 E0
         
         freq_hex = [0x00, 0x0D, 0xF5, 0xE0] # 4 bytes, MSB first
-        antenna = 0x01 # 0x00 = Antenna 1, 0x01 = Antenna 2 (Note: 0x91 uses 0-based index, unlike 0x01)
+        antenna = 0x00 # 0x00 = Antenna 1, 0x01 = Antenna 2 (Note: 0x91 uses 0-based index, unlike 0x01)
         
         data = freq_hex + [antenna]
         

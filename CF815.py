@@ -517,7 +517,7 @@ class RFIDReaderTCP:
                 0x00, 0x00,        # No TID
                 0x01,              # Target A
                 0x80,              # Antenna 1
-                0x02               # 200ms scan (2 × 100ms)
+                0x05               # 500ms scan (5 × 100ms)
             ]
             
             self.send_command(0x01, data=data, address=address)

@@ -522,7 +522,7 @@ class RFIDReaderTCP:
             while (time.time() - round_start) < 0.35: 
                 
                 # Check if data is available in buffer without blocking forever
-                if self.serial.in_waiting > 0:
+                if self.ser.in_waiting > 0:
                     response = self.receive_response() 
                     
                     if not response:

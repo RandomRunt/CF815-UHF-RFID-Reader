@@ -759,7 +759,7 @@ if __name__ == "__main__":
                     
                     reader.inventory(
                         address=READER_ADDRESS,
-                        q_value=0b00000100,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
+                        q_value=0b00000000,   # 0x04 = 0b00000100 (No Stats, Standard Strategy, No FastID, No Phase Info, Q=4)
                         session=0x00,  # Smart session
                         mask_mem=0x01,
                         mask_adr=0x0000,

@@ -767,7 +767,7 @@ if __name__ == "__main__":
                         adr_tid=0x00,
                         len_tid=0x00,
                         target=0x00,  # Target A
-                        ant=0x80,  # Antenna 1
+                        ant=0x81,  # Antenna 2 -> 0x80 = Ant 1, 0x81 = Ant 2, 0x82 = Ant 3, 0x83 = Ant 4
                         scan_time=int(scan_duration * 10),   # old: int(scan_duration * 10) scan time in 100ms units
                         scan_time_sec=scan_duration
                     )

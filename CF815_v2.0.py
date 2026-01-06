@@ -212,7 +212,9 @@ class RFIDReaderTCP:
                         receiving = False
                     else:
                         receiving = False
-                        
+                
+                time.sleep(0.5) # Small delay between scans
+                
                 print(f"Time: {time.time()-start_t:.1f}s | Unique Tags: {len(tags)}", end='\r')
                 
         except KeyboardInterrupt:

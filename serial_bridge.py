@@ -40,12 +40,11 @@ def forward(source, destination, direction_label, color_code):
                 destination.write(data)
                 destination.flush()
             
-            # Tiny sleep to prevent 100% CPU usage
             time.sleep(0.001)
             
     except serial.SerialException as e:
         print(f"\n[!] Serial Error in {direction_label} thread: {e}")
-        # We don't exit here, we let the main thread handle cleanup
+        # Main thread handles cleanup
     except Exception as e:
         print(f"\n[!] Error: {e}")
 
@@ -60,19 +59,17 @@ def main():
         
         print("\nbridge Active! Connect your Windows App to the PARTNER of " + VIRTUAL_PORT)
         print("(For example, if you are using COM21, connect App to COM20)")
-        print("\n\033[92mGREEN = APP -> READER (Command)\033[0m")
-        print("\033[96mCYAN  = READER -> APP (Response)\033[0m")
+        print("GREEN = APP -> READER (Command)\033[0m")
+        print("CYAN  = READER -> APP (Response)\033[0m")
         print("-" * 60)
 
         # Thread 1: Listen to Virtual (App), Forward to Real (Reader)
-        # Color \033[92m is Green
         t1 = threading.Thread(target=forward, 
                               args=(virt_ser, real_ser, "APP -> RDR", "\033[92m"))
         t1.daemon = True
         t1.start()
 
         # Thread 2: Listen to Real (Reader), Forward to Virtual (App)
-        # Color \033[96m is Cyan
         t2 = threading.Thread(target=forward, 
                               args=(real_ser, virt_ser, "RDR -> APP", "\033[96m"))
         t2.daemon = True

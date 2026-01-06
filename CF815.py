@@ -990,6 +990,9 @@ if __name__ == "__main__":
                         buzzer_on = True
                         reader.set_buzzer_mode(address=READER_ADDRESS, mode=0x01)
                         print("Toggling Buzzer Mode ON...   ")
+                case "10":
+                    # Raw Traffic Debugging
+                    reader.debug_raw_traffic(address=READER_ADDRESS)
                 
                 case "exit":
                     print("Exiting...")

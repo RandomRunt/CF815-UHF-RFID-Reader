@@ -693,6 +693,34 @@ class RFIDReaderTCP:
         else:
             print("\n[WARNING] No response received (Timeout).")
     
+    def debug_raw_traffic(self, address=0x00):
+        """
+        Dumb Sniffer: Sends a command every 600ms and prints 
+        EVERY byte received immediately to the console.
+        """
+        print("\n=== RAW TRAFFIC MONITOR (Press Ctrl+C to Stop) ===")
+        print("Format: [Timestamp relative to Send] RX: <HEX DATA>")
+        
+        try:
+            while True:
+                if self.ser.in_waiting > 0:
+                    # Read whatever is there immediately
+                    raw_data = self.ser.read(self.ser.in_waiting)
+                    
+                    # Calculate delay since command was sent
+                    delay_ms = (time.time() - send_time) * 1000
+                    
+                    # Print formatted hex
+                    hex_str = binascii.hexlify(raw_data).decode().upper()
+                    print(f"[{delay_ms:6.1f} ms] RX: {hex_str}")
+                
+                else:
+                    # Sleep tiny amount to yield CPU
+                    time.sleep(0.005)
+                    
+        except KeyboardInterrupt:
+            print("\n\nStopped by User.")
+    
     def obtain_inventory_buffer(self, address=0x00):
         """
         Command 0x72: Tag Inventory with Memory Buffer

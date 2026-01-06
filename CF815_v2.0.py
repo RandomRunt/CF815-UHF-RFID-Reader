@@ -237,7 +237,7 @@ class RFIDReaderTCP:
                     
                     # Status 0x01 (Success), 0x03 (More Data), 0x04 (Mem Full) all contain tags
                     if status in [0x01, 0x03, 0x04]:
-                        self._parse_tag_payload(payload, unique_tags)
+                        self._parse_tags(payload, unique_tags)
                         # If 0x01, the reader is declaring "I am done with this round"
                         if status == 0x01: round_active = False 
                         

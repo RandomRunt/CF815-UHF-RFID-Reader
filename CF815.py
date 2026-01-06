@@ -702,18 +702,13 @@ class RFIDReaderTCP:
         print("Format: [Timestamp relative to Send] RX: <HEX DATA>")
         
         try:
+            send_time = time.time()
             while True:
-                if self.ser.in_waiting > 0:
-                    # Read whatever is there immediately
-                    raw_data = self.ser.read(self.ser.in_waiting)
-                    
-                    # Calculate delay since command was sent
-                    delay_ms = (time.time() - send_time) * 1000
-                    
-                    # Print formatted hex
-                    hex_str = binascii.hexlify(raw_data).decode().upper()
-                    print(f"[{delay_ms:6.1f} ms] RX: {hex_str}")
-                
+                response = self.receive_response()
+                if response:
+                    elapsed = time.time() - send_time
+                    print(f"[{elapsed:.3f}s] RX: {binascii.hexlify(response).decode().upper()}")
+                    send_time = time.time()
                 else:
                     # Sleep tiny amount to yield CPU
                     time.sleep(0.005)

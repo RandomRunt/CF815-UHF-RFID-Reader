@@ -496,65 +496,73 @@ class RFIDReaderTCP:
         #     #     print("Inventory statistics frame received, operation completed.")
         #     #     break
     
-    def inventory_continuous_async(self, address=0x00, duration_sec=10.0):
-        print(f"\n=== ASYNC SCAN MODE ({duration_sec}s) ===")
+    def inventory_continuous_async(self, address=0x00, duration_sec=5.0):
+        print(f"\n=== ASYNC SCAN MODE (Run for {duration_sec}s) ===")
         
-        start_time = time.time()
+        script_start_time = time.time()
         unique_tags = {}
         scan_count = 0
         
-        while time.time() - start_time < duration_sec:
+        # Reader Scan Config
+        # Byte 0x05 usually means 500ms (5 * 100ms unit)
+        scan_time_hex = 0x05 
+        listening_window = 0.6  # 500ms scan + 100ms buffer
+        
+        while time.time() - script_start_time < duration_sec:
             scan_count += 1
             
-            # 1. Send Command
-            data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x05]
+            # 1. SEND COMMAND
+            data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, scan_time_hex]
             self.send_command(0x01, data=data, address=address)
             
-            # 2. THE LISTENING LOOP
-            # We must stay here collecting packets until the 300ms is actually UP
-            # or we receive a specific "Command Complete" packet.
+            # 2. BLOCK FOR ACK (The "Start" Gun)
+            # We MUST wait here. Do not check in_waiting. Just ask for a packet.
+            # receive_response() should have a small timeout (e.g. 0.1s) built in.
+            ack_response = self.receive_response()
             
+            if not ack_response:
+                # If we didn't even get an ACK, hardware is unresponsive. Skip round.
+                continue 
+            
+            if self.handle_response_frame(ack_response) != 0x01:
+                # ACK indicated failure/error
+                continue
+
+            # 3. THE LISTENING LOOP (Async Data Collection)
             round_start = time.time()
             tags_found_in_this_round = 0
             
-            # Check if data is available in buffer without blocking forever
-            if self.ser.in_waiting > 0:
-                response = self.receive_response() 
+            while (time.time() - round_start) < listening_window:
                 
-                if self.handle_response_frame(response) != 0x01:
-                    continue
-                else:
-                    listen_start = time.time()
-                    while (time.time() - listen_start) < (duration_sec * 10):
-                        next_response = self.receive_response()
-                        if next_response:
-                            print(f"\n[ADDITIONAL TAG RESPONSE RECEIVED] -> {binascii.hexlify(next_response).decode().upper()}")
-                            response = next_response
-                            if len(response) > 6:
-                                # Process tags (Same parsing logic as before)
-                                num_tags = response[5]
-                                if num_tags > 0:
-                                    tags_found_in_this_round += num_tags
-                        else:
-                            break
-                # Tiny sleep to prevent CPU spiking while waiting for serial data
-                time.sleep(0.01)
+                # Check for NEXT packet (Tag Data)
+                # We use in_waiting here to avoid blocking for full timeout if buffer is empty
+                if self.ser.in_waiting > 0:
+                    next_response = self.receive_response()
+                    
+                    if next_response and len(next_response) > 6:
+                         # --- Process Tag ---
+                        num_tags = next_response[5]
+                        if num_tags > 0:
+                            tags_found_in_this_round += num_tags
+                            
+                            # (Insert your parsing logic here)
+                            print(f"[TAG PACKET] Count: {num_tags} | Raw: {binascii.hexlify(next_response).decode()}")
 
-            # 3. DECISION TIME (Adaptive Logic)
-            elapsed_total = time.time() - start_time
-            print(f"Scans: {scan_count} | Tags Found: {len(unique_tags)}", end="\r")
+                else:
+                    # IMPORTANT: If no data, we DO NOT break. We just wait a tiny bit.
+                    # This allows the reader time to send the next tag.
+                    time.sleep(0.005)
+
+            # 4. DECISION TIME (Adaptive Logic)
+            elapsed = time.time() - script_start_time
+            print(f"Scans: {scan_count} | Tags Found (Round): {tags_found_in_this_round}", end="\r")
             
             if tags_found_in_this_round > 0:
-                # VIOLENT FLASH:
-                # If we found tags, loop immediately. 
-                # Since we already waited ~350ms in the listening loop, 
-                # we just go straight to 'while' top without extra sleep.
+                # VIOLENT FLASH: Loop immediately
                 pass 
             else:
-                # HEARTBEAT:
-                # If we sat there for 350ms and heard nothing, 
-                # wait an EXTRA 300ms to create the "off" blink.
-                time.sleep(0.3)
+                # HEARTBEAT: Wait briefly
+                time.sleep(0.2)
     
     def inventory_continuous(self, address=0x00, duration_sec=5.0):
         """

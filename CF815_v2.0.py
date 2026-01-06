@@ -183,45 +183,86 @@ class RFIDReaderTCP:
     #  INVENTORY LOGIC
     # =============================================================
     def inventory_continuous_async(self, address=0x00, duration_sec=5.0):
-        print(f"\n=== ASYNC SCAN MODE ({duration_sec}s) ===")
-        start_t = time.time()
-        tags = {}
+        print(f"\n=== ASYNC SCAN MODE (Run for {duration_sec}s) ===")
+        
+        script_start_time = time.time()
+        unique_tags = {}
         scan_count = 0
         
-        # Q=4, Sess=0, Mask=0, Ant=0x80 (Ant1), Time=0x05 (500ms)
-        cmd_data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x05]
-
+        # --- CONFIGURATION MATCHING WINDOWS APP ---
+        # 1. Scan Time: Windows uses 50 (5.0s). We will use 0x14 (2.0s) for better responsiveness
+        #    but long enough to catch tags. 0x05 (0.5s) is too short.
+        scan_time_hex = 0x14 
+        
+        # 2. Session: Windows uses "Auto". 
+        #    Manual [cite: 214] says 0xFF = "Smart configuration" (Auto).
+        #    This is safer than 0x00 (Session 0).
+        session_val = 0xFF 
+        
         try:
-            while time.time() - start_t < duration_sec:
+            while time.time() - script_start_time < duration_sec:
                 scan_count += 1
+                
+                # Construct Command 0x01 (Inventory)
+                # [Q, Session, MaskMem, MaskAdr(2), MaskLen, AdrTID, LenTID, Target, Ant, Time]
+                
+                # Note: We toggle Target A (0x00) and Target B (0x01) every scan
+                # to catch tags that might be stuck in "B" state (Read) from previous sessions.
+                target_val = 0x00 if (scan_count % 2 == 0) else 0x01
+                
+                cmd_data = [
+                    0x04,           # Q=4 (Matches Windows App) [cite: 1489]
+                    session_val,    # Session=0xFF (Auto/Smart) [cite: 214]
+                    0x01,           # MaskMem=EPC
+                    0x00, 0x00,     # MaskAdr
+                    0x00,           # MaskLen
+                    0x00,           # AdrTID
+                    0x00,           # LenTID
+                    target_val,     # Target (Flips A/B) [cite: 233]
+                    0x80,           # Antenna 1 [cite: 237]
+                    scan_time_hex   # ScanTime (2.0s)
+                ]
+                
                 self.send_command(0x01, data=cmd_data, address=address)
                 
-                # Receive Loop (Handle Status 0x03 Burst)
-                receiving = True
-                while receiving:
-                    frame = self.receive_response()
-                    if not frame: break
+                # --- RECEIVE LOOP ---
+                round_active = True
+                while round_active:
+                    response = self.receive_response()
+                    if not response: break 
                     
-                    status = frame[3]
-                    payload = frame[4:-2]
+                    if len(response) < 6: continue
+                    status = response[3]
+                    payload = response[4:-2]
                     
+                    # Status 0x01 (Success), 0x03 (More Data), 0x04 (Mem Full) all contain tags
                     if status in [0x01, 0x03, 0x04]:
-                        self._parse_tags(payload, tags)
-                        if status == 0x01: receiving = False
-                    elif status == 0x02:
-                        receiving = False
-                    else:
-                        receiving = False
-                
-                time.sleep(0.5) # Small delay between scans
-                
-                print(f"Time: {time.time()-start_t:.1f}s | Unique Tags: {len(tags)}", end='\r')
-                
+                        self._parse_tag_payload(payload, unique_tags)
+                        # If 0x01, the reader is declaring "I am done with this round"
+                        if status == 0x01: round_active = False 
+                        
+                    elif status == 0x02: # Timeout (No tags found in this window)
+                        round_active = False
+                        
+                    else: # Other errors (e.g., Antenna Error 0xF8)
+                        if status == 0xF8: print("[!] Antenna Disconnected?")
+                        round_active = False
+
+                elapsed = time.time() - script_start_time
+                print(f"Time: {elapsed:.1f}s | Mode: {'Target A' if target_val==0 else 'Target B'} | Tags: {len(unique_tags)}", end="\r")
+
+                # Small cool-down to let the reader reset RF field
+                time.sleep(0.1)
+
         except KeyboardInterrupt:
-            print("\nStopped.")
+            print("\nStopped by user.")
             
-        print(f"\nScan Finished. Found {len(tags)} unique tags.")
-        return list(tags.keys())
+        print(f"\n\n=== SCAN COMPLETE ===")
+        print(f"Total Unique Tags: {len(unique_tags)}")
+        for epc in unique_tags:
+            # We can't access count easily with current dict structure, just printing EPC
+            print(f"  > {epc}")
+        return list(unique_tags.keys())
 
     def _parse_tags(self, payload, tags):
         if len(payload) < 2: return

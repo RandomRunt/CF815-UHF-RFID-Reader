@@ -192,7 +192,7 @@ class RFIDReaderTCP:
         # --- CONFIGURATION MATCHING WINDOWS APP ---
         # 1. Scan Time: Windows uses 50 (5.0s). We will use 0x14 (2.0s) for better responsiveness
         #    but long enough to catch tags. 0x05 (0.5s) is too short.
-        scan_time_hex = 0x14 
+        scan_time_hex = 0x32
         
         # 2. Session: Windows uses "Auto". 
         #    Manual [cite: 214] says 0xFF = "Smart configuration" (Auto).

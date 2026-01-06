@@ -525,7 +525,7 @@ class RFIDReaderTCP:
                     continue
                 else:
                     listen_start = time.time()
-                    while (time.time() - listen_start) < 0x06:
+                    while (time.time() - listen_start) < (duration_sec * 10):
                         next_response = self.receive_response()
                         if next_response:
                             print(f"\n[ADDITIONAL TAG RESPONSE RECEIVED] -> {binascii.hexlify(next_response).decode().upper()}")

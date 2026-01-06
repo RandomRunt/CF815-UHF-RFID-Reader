@@ -507,7 +507,7 @@ class RFIDReaderTCP:
             scan_count += 1
             
             # 1. Send Command
-            data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x32]
+            data = [0x04, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x05]
             self.send_command(0x01, data=data, address=address)
             
             # 2. THE LISTENING LOOP
@@ -517,38 +517,28 @@ class RFIDReaderTCP:
             round_start = time.time()
             tags_found_in_this_round = 0
             
-            # We listen for slightly longer than the scan duration (300ms + 50ms buffer)
-            # to ensure we catch the final packet.
-            while (time.time() - round_start) < 0.35: 
+            # Check if data is available in buffer without blocking forever
+            if self.ser.in_waiting > 0:
+                response = self.receive_response() 
                 
-                # Check if data is available in buffer without blocking forever
-                if self.ser.in_waiting > 0:
-                    response = self.receive_response() 
-                    
-                    if not response:
-                        continue
-
-                    # CASE A: It's just an ACK (e.g. length is small, status OK)
-                    if len(response) < 6:
-                        continue 
-                        
-                    # CASE B: It's a Summary Packet (Total count)
-                    # Many E710 readers send a packet at the very end saying "I saw X tags"
-                    # If you can identify this packet, you can break the loop early!
-                    # if is_end_of_scan_packet(response): 
-                    #     break 
-
-                    # CASE C: It's Tag Data
-                    if len(response) > 6:
-                        # Process tags (Same parsing logic as before)
-                        num_tags = response[5]
-                        if num_tags > 0:
-                            tags_found_in_this_round += num_tags
-                            # ... (extract EPCs, add to unique_tags) ...
-                            
+                if self.handle_response_frame(response) != 0x01:
+                    continue
                 else:
-                    # Tiny sleep to prevent CPU spiking while waiting for serial data
-                    time.sleep(0.01)
+                    listen_start = time.time()
+                    while (time.time() - listen_start) < 0x06:
+                        next_response = self.receive_response()
+                        if next_response:
+                            print(f"\n[ADDITIONAL TAG RESPONSE RECEIVED] -> {binascii.hexlify(next_response).decode().upper()}")
+                            response = next_response
+                            if len(response) > 6:
+                                # Process tags (Same parsing logic as before)
+                                num_tags = response[5]
+                                if num_tags > 0:
+                                    tags_found_in_this_round += num_tags
+                        else:
+                            break
+                # Tiny sleep to prevent CPU spiking while waiting for serial data
+                time.sleep(0.01)
 
             # 3. DECISION TIME (Adaptive Logic)
             elapsed_total = time.time() - start_time

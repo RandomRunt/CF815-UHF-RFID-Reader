@@ -24,6 +24,10 @@ The repository consists of the following three Python files:
 *   Python 3.9 or higher for pyserial support
 *   Network connectivity to the CHAFON CF815 Reader
 
+## Known Issue
+
+Communication with the reader over TCP/IP does connect and getting/setting reader settings (e.g. reader info, RF power, scan duration) works correctly. However, the scripts currently are **unable** to turn the reader on and off (start/stop the inventory scan) — this is a currently unsolved issue. Contributions or fixes are welcome.
+
 ## Usage
 
 ### 1. CF815_v2.0.py (Socket Implementation)

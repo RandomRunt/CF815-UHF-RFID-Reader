@@ -26,84 +26,83 @@ The repository consists of the following three Python files:
 
 ## Usage
 
-1. CF815_v2.0.py (Socket Implementation)
+### 1. CF815_v2.0.py (Socket Implementation)
 
-Recommended for production use — connects directly over TCP/IP using Python's native socket library, and handles low-level TCP fragmentation/buffering without a serial wrapper.
+Recommended for production use — connects directly over TCP/IP using Python's native `socket` library, and handles low-level TCP fragmentation/buffering without a serial wrapper.
 
-Key features
+**Key features**
+*   Native socket communication (`socket.AF_INET`) for robust networking
+*   Auto-initialization: sets Answer Mode, enables Antenna 1, and sets RF power to 30 dBm on connect
+*   Asynchronous inventory: continuous scanning loop that toggles target bits (A/B) to maximize tag detection
+*   Buffered inventory: supports the reader's internal memory buffer mode (Command `0x18`)
 
-Native socket communication (socket.AF_INET) for robust networking
-Auto-initialization: sets Answer Mode, enables Antenna 1, and sets RF power to 30 dBm on connect
-Asynchronous inventory: continuous scanning loop that toggles target bits (A/B) to maximize tag detection
-Buffered inventory: supports the reader's internal memory buffer mode (Command 0x18)
+**Configuration**
+Set connection details in the `if __name__ == "__main__":` block at the bottom of the script:
+*   `READER_IP` — default `"192.168.1.200"`
+*   `READER_PORT` — default `2022`
 
-Configuration Set connection details in the if __name__ == "__main__": block at the bottom of the script:
+**Running it**
+Run the script from the command line. A menu will appear with the following options:
 
-READER_IP — default "192.168.1.200"
-READER_PORT — default 2022
+| # | Option | Description |
+|---|--------|-------------|
+| 1 | Info | Get firmware version and hardware details |
+| 2 | AsyncScan | Continuous inventory mode (recommended for testing detection) |
+| 3 | BufScan | Buffered inventory mode (reader stores tags internally, then transmits) |
+| 4 | PersistentTime | Set the scan duration in non-volatile memory |
+| 5 | Power | Adjust RF output power (0-30 dBm) |
+| 6 | BufCount/BufData | Retrieve data from the reader's internal buffer |
+| 7 | AntHealth | Check antenna return loss (VSWR) |
+| 8 | Buzzer | Toggle the hardware buzzer |
+| 9 | PortScan | Cycle through antenna ports 1-4 |
+| 10 | Raw | Monitor raw hexadecimal traffic |
 
-Running it Run the script from the command line. A menu will appear with the following options:
+### 2. CF815_v1.0.py (PySerial Implementation)
 
-#	Option	Description
-1	Info	Get firmware version and hardware details
-2	AsyncScan	Continuous inventory mode (recommended for testing detection)
-3	BufScan	Buffered inventory mode (reader stores tags internally, then transmits)
-4	PersistentTime	Set the scan duration in non-volatile memory
-5	Power	Adjust RF output power (0-30 dBm)
-6	BufCount/BufData	Retrieve data from the reader's internal buffer
-7	AntHealth	Check antenna return loss (VSWR)
-8	Buzzer	Toggle the hardware buzzer
-9	PortScan	Cycle through antenna ports 1-4
-10	Raw	Monitor raw hexadecimal traffic
-2. CF815_v1.0.py (PySerial Implementation)
+Provides similar functionality to v2.0 but uses `pyserial`'s `socket://` URL handler, abstracting the TCP connection as a serial port object — useful for integrating with legacy applications that expect a serial interface rather than a raw socket.
 
-Provides similar functionality to v2.0 but uses pyserial's socket:// URL handler, abstracting the TCP connection as a serial port object — useful for integrating with legacy applications that expect a serial interface rather than a raw socket.
+**Key features**
+*   Serial abstraction: treats the TCP connection as a standard serial port (`self.ser.read()`)
+*   CRC calculation: implements the CRC16 algorithm (polynomial `0x8408`) required by the CF815 protocol
+*   Detailed parsing of reader information, frequency bands, and protocol support
 
-Key features
+**Configuration**
+*   `READER_IP` — default `"192.168.1.200"`
+*   `READER_PORT` — default `2022`
+*   `BAUDRATE` — default `57600` (virtual baud rate for the socket handler)
 
-Serial abstraction: treats the TCP connection as a standard serial port (self.ser.read())
-CRC calculation: implements the CRC16 algorithm (polynomial 0x8408) required by the CF815 protocol
-Detailed parsing of reader information, frequency bands, and protocol support
+**Running it**
+Run the script from the command line. The menu is similar to v2.0 but focuses on:
 
-Configuration
+1. Get Reader Info — displays detailed protocol and frequency support
+2. Inventory Scan with Buffer — performs a timed scan using internal memory
+3. Manual Timing Scan — performs an immediate inventory scan
+4. Set Scan Time — configures the inventory duration
+5. Modify Antenna Power — sets the gain
 
-READER_IP — default "192.168.1.200"
-READER_PORT — default 2022
-BAUDRATE — default 57600 (virtual baud rate for the socket handler)
-
-Running it Run the script from the command line. The menu is similar to v2.0 but focuses on:
-
-Get Reader Info — displays detailed protocol and frequency support
-Inventory Scan with Buffer — performs a timed scan using internal memory
-Manual Timing Scan — performs an immediate inventory scan
-Set Scan Time — configures the inventory duration
-Modify Antenna Power — sets the gain
-3. serial_bridge.py (Diagnostic Bridge)
+### 3. serial_bridge.py (Diagnostic Bridge)
 
 A man-in-the-middle (MitM) diagnostic tool that sits between the physical reader hardware and a control application (such as the official Windows demo software). It intercepts, logs, and forwards serial traffic in real time.
 
-Architecture
+**Architecture**
+*   **Real Port** — connects to the physical hardware (e.g. the reader plugged in over USB/Serial)
+*   **Virtual Port** — connects to a virtual serial pair (e.g. `com0com`) that the control application connects to
 
-Real Port — connects to the physical hardware (e.g. the reader plugged in over USB/Serial)
-Virtual Port — connects to a virtual serial pair (e.g. com0com) that the control application connects to
+**Key features**
+*   Bi-directional logging: logs traffic from App→Reader and Reader→App separately
+*   Color coding: terminal colors distinguish direction (green for commands, cyan for responses)
+*   Hex output: all data printed in uppercase hex for easy protocol analysis
 
-Key features
+**Configuration**
+Edit the configuration section at the top of the file:
+*   `REAL_PORT` — the COM port of the physical reader (e.g. `'COM7'`)
+*   `VIRTUAL_PORT` — one end of a virtual COM pair (e.g. `'COM21'`)
+*   `BAUDRATE` — match the reader's baud rate (usually `57600`)
 
-Bi-directional logging: logs traffic from App→Reader and Reader→App separately
-Color coding: terminal colors distinguish direction (green for commands, cyan for responses)
-Hex output: all data printed in uppercase hex for easy protocol analysis
-
-Configuration Edit the configuration section at the top of the file:
-
-REAL_PORT — the COM port of the physical reader (e.g. 'COM7')
-VIRTUAL_PORT — one end of a virtual COM pair (e.g. 'COM21')
-BAUDRATE — match the reader's baud rate (usually 57600)
-
-Running it
-
-Ensure the control application is closed.
-Configure a virtual COM pair (e.g. COM20 <-> COM21).
-Set VIRTUAL_PORT in the script to 'COM21'.
-Run the script.
-Open the control application and connect it to 'COM20'.
-Observe the traffic log in the terminal.
+**Running it**
+1. Ensure the control application is closed.
+2. Configure a virtual COM pair (e.g. COM20 <-> COM21).
+3. Set `VIRTUAL_PORT` in the script to `'COM21'`.
+4. Run the script.
+5. Open the control application and connect it to `'COM20'`.
+6. Observe the traffic log in the terminal.

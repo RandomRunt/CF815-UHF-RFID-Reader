@@ -1,6 +1,6 @@
 # CF815-UHF-RFID-Reader
 
-This repository contains Python scripts for interfacing with a CHAFON CF815 UHF RFID Reader over TCP/IP.
+This repository contains preliminary Python scripts for interfacing with a CHAFON CF815 UHF RFID Reader over TCP/IP.
 
 ## Overview
 
